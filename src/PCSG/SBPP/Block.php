@@ -83,6 +83,13 @@ class Block
         );
     }
 
+    /**
+     * Inserts the given operation into the database
+     * @param $transNum
+     * @param $opNum
+     * @param $type
+     * @param $data
+     */
     protected function insertOperation($transNum, $opNum, $type, $data)
     {
         Output::debug("  Inserting Operation b:{$this->blockNumber} t:{$transNum} o:{$opNum} of type ".$type);
@@ -143,14 +150,32 @@ class Block
                 $this->insertAccountCreate($transNum, $opNum, $data);
                 break;
             case 'witness_update':
-                // TODO
-                Output::warning("Unhandled operation type ".$type);
+                $this->insertWitnessUpdate($transNum, $opNum, $data);
                 break;
             case 'set_withdraw_vesting_route':
-                // TODO
-                Output::warning("Unhandled operation type ".$type);
+                $this->insertWithdrawVestingRoutes($transNum, $opNum, $data);
+                break;
+            case 'transfer_to_savings':
+                $this->insertTransferToSavings($transNum, $opNum, $data);
+                break;
+            case 'cancel_transfer_from_savings':
+                $this->insertCancelTransferFromSavings($transNum, $opNum, $data);
+                break;
+            case 'withdraw_vesting':
+                $this->insertWithdrawVesting($transNum, $opNum, $data);
+                break;
+            case 'transfer_from_savings':
+                $this->insertTransferFromSavings($transNum, $opNum, $data);
+                break;
+            case 'account_witness_proxy':
+                $this->insertAccountWitnessProxy($transNum, $opNum, $data);
                 break;
             default:
+                file_put_contents(
+                    dirname(dirname(dirname(dirname(__FILE__))))."/missingOperations.txt",
+                    $type.PHP_EOL,
+                    FILE_APPEND
+                );
                 Output::warning("    -> Unknown operation type '".$type."' in b:{$this->blockNumber} t:{$transNum} o:{$opNum}");
                 break;
         }
@@ -664,6 +689,202 @@ class Block
                 // Data
                 "author" => $data['author'],
                 "permlink" => $data['permlink']
+            )
+        );
+    }
+
+    /**
+     * Inserts
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertWitnessUpdate($transNum, $opNum, $data)
+    {
+        Parser::getDatabase()->insert(
+            "sbds_tx_witness_updates",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'witness_update',
+                // Data
+                "owner" => $data['owner'],
+                "url" => $data['url'],
+                "block_signing_key" => $data['block_signing_key'],
+                "props_account_creation_fee" => $data['props']['account_creation_fee'],
+                "props_maximum_block_size" => $data['props']['maximum_block_size'],
+                "props_sbd_interest_rate" => $data['props']['sbd_interest_rate'],
+                "fee" => $data['fee']
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'set_withdraw_vesting_route' operation into thze database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertWithdrawVestingRoutes($transNum, $opNum, $data)
+    {
+        Parser::getDatabase()->insert(
+            "sbds_tx_withdraw_vesting_routes",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'set_withdraw_vesting_route',
+                // Data
+                "from_account" => $data['from_account'],
+                "to_account" => $data['to_account'],
+                "percent" => $data['percent'],
+                "auto_vest" => $data['auto_vest']
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'transfer_to_savings' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertTransferToSavings($transNum, $opNum, $data)
+    {
+        $amount = explode(" ", $data['amount'])[0];
+        $currency = explode(" ", $data['amount'])[1];
+
+        Parser::getDatabase()->insert(
+            "sbds_tx_transfer_to_savings",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'transfer_to_savings',
+                // Data
+                "from" => $data['from'],
+                "to" => $data['to'],
+                "amount" => $amount,
+                "amount_symbol" => $currency,
+                "memo" => $data['memo']
+
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'cancel_transfer_from_savings' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertCancelTransferFromSavings($transNum, $opNum, $data)
+    {
+        Parser::getDatabase()->insert(
+            "sbds_tx_cancel_transfer_from_savings",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'cancel_transfer_from_savings',
+                // Data
+                "from" => $data['from'],
+                "request_id" => $data['request_id']
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'withdraw_vesting' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertWithdrawVesting($transNum, $opNum, $data)
+    {
+        Parser::getDatabase()->insert(
+            "sbds_tx_withdraw_vestings",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'withdraw_vesting',
+                // Data
+                "account" => $data['account'],
+                "vesting_shares" => $data['vesting_shares']
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'transfer_from_savings' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertTransferFromSavings($transNum, $opNum, $data)
+    {
+        $amount = explode(" ", $data['amount'])[0];
+        $currency = explode(" ", $data['amount'])[0];
+
+        Parser::getDatabase()->insert(
+            "sbds_tx_transfer_from_savings",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'transfer_from_savings',
+                // Data
+                "from" => $data['from'],
+                "to" => $data['to'],
+                "amount" => $amount,
+                "amount_symbol" => $currency,
+                "memo" => $data['memo'],
+                "request_id" => $data['request_id']
+            )
+        );
+    }
+
+    /**
+     * Inserts a 'account_witness_proxy' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertAccountWitnessProxy($transNum, $opNum, $data)
+    {
+        Parser::getDatabase()->insert(
+            "sbds_tx_account_witness_proxies",
+            array(
+                // Meta
+                "block_num" => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num" => $opNum,
+                "timestamp" => $this->dateTime,
+                "operation_type" => 'account_witness_proxy',
+                // Data
+                "account" => $data['account'],
+                "Proxy" => $data['proxy']
             )
         );
     }
