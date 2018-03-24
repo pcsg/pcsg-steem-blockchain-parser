@@ -1,0 +1,22 @@
+<?php exit; ?>
+
+[steem]
+blockchainurl="https://api.steemit.com/"
+rpcurls[]="https://api.steemit.com/"
+rpcurls[]="https://api.steem.house/"
+
+[requests]
+concurrent_requests=10
+
+[messages]
+log_level=
+message_level=debug
+message_timestamp_format="H:i:s"
+
+[database]
+host="localhost"
+port="3306"
+user=""
+password=""
+dbname="steem"
+
