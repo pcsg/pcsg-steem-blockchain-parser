@@ -1,7 +1,7 @@
 {
     "name": "pcsg\/steemit-php-parser",
     "description": "A Steemit Blockchain to MySql Parser",
-    "version": "dev-dev",
+    "version": "dev-master",
     "type": "project",
     "authors": [
         {
