@@ -4,6 +4,11 @@ namespace PCSG\SBPP;
 
 use QUITest\QUI\Utils\Text\QUIUtilsTextWordTest;
 
+/**
+ * Class Block
+ *
+ * @package PCSG\SBPP
+ */
 class Block
 {
     protected $blockNumber;
@@ -16,12 +21,73 @@ class Block
     protected $witness_signature;
     protected $transaktion_merkle_root;
 
+    /**
+     * Block constructor.
+     *
+     * @param $blockNumber
+     */
     public function __construct($blockNumber)
     {
         $this->blockNumber = $blockNumber;
     }
 
-    public function parse()
+    /**
+     * Parses the given array into the block object and inserts all data into the database
+     *
+     * @param array $blockData
+     */
+    public function parseArray(array $blockData)
+    {
+        $this->loadDataFromArray($blockData);
+        Parser::getDatabase()->getPDO()->beginTransaction();
+
+        // Insert the raw block data into the database
+        try {
+            $this->insertBlockIntoDatabase();
+        } catch (\Exception $Exception) {
+            switch ($Exception->getCode()) {
+                case 23000:
+                    if (strpos($Exception->getMessage(), "1062 Duplicate entry") !== false) {
+                        Output::warning("Skipped Block ".$this->blockNumber.": Already in Database");
+                        Parser::getDatabase()->getPDO()->rollBack();
+                        return;
+                    }
+                    break;
+            }
+
+            Output::error("MySql Error -".$Exception->getMessage()."(Code: ".$Exception->getCode().")");
+            Parser::getDatabase()->getPDO()->rollBack();
+
+            return;
+        }
+
+        // Insert the blocks operations into the database
+        foreach ($this->transactions as $transationIndex => $transactionData) {
+            $transactionNum = $transationIndex + 1;
+            $operations     = $transactionData['operations'];
+            foreach ($operations as $operationIndex => $operationDetails) {
+                $operationNum = $operationIndex + 1;
+                $opType       = $operationDetails[0];
+                $opData       = $operationDetails[1];
+
+                try {
+                    $this->insertOperation($transactionNum, $operationNum, $opType, $opData);
+                } catch (\Exception $Exception) {
+                    Output::error("MySql Error -".$Exception->getMessage()."(Code: ".$Exception->getCode().")");
+                    Parser::getDatabase()->getPDO()->rollBack();
+
+                    return;
+                }
+            }
+        }
+
+        Parser::getDatabase()->getPDO()->commit();
+    }
+
+    /**
+     *
+     */
+    public function parseFromBlockChain()
     {
         Output::info("Parsing Block ".$this->blockNumber);
         $this->loadDataFromChain();
@@ -31,6 +97,16 @@ class Block
         try {
             $this->insertBlockIntoDatabase();
         } catch (\Exception $Exception) {
+            switch ($Exception->getCode()) {
+                case 23000:
+                    if (strpos($Exception->getMessage(), "1062 Duplicate entry") !== false) {
+                        Output::warning("Skipped Block ".$this->blockNumber.": Already in Database");
+                        Parser::getDatabase()->getPDO()->rollBack();
+                        return;
+                    }
+                    break;
+            }
+
             Output::error("MySql Error -".$Exception->getMessage()."(Code: ".$Exception->getCode().")");
             Parser::getDatabase()->getPDO()->rollBack();
 
@@ -39,11 +115,11 @@ class Block
 
         foreach ($this->transactions as $transationIndex => $transactionData) {
             $transactionNum = $transationIndex + 1;
-            $operations = $transactionData['operations'];
+            $operations     = $transactionData['operations'];
             foreach ($operations as $operationIndex => $operationDetails) {
                 $operationNum = $operationIndex + 1;
-                $opType = $operationDetails[0];
-                $opData = $operationDetails[1];
+                $opType       = $operationDetails[0];
+                $opData       = $operationDetails[1];
 
                 try {
                     $this->insertOperation($transactionNum, $operationNum, $opType, $opData);
@@ -72,12 +148,12 @@ class Block
         Parser::getDatabase()->insert(
             "sbds_core_blocks",
             array(
-                "raw" => "",
-                "block_num" => $this->blockNumber,
-                "previous" => $this->previous,
-                "timestamp" => $this->dateTime,
-                "witness" => $this->witness,
-                "witness_signature" => $this->witness_signature,
+                "raw"                     => "",
+                "block_num"               => $this->blockNumber,
+                "previous"                => $this->previous,
+                "timestamp"               => $this->dateTime,
+                "witness"                 => $this->witness,
+                "witness_signature"       => $this->witness_signature,
                 "transaction_merkle_root" => $this->transaktion_merkle_root
             )
         );
@@ -85,6 +161,7 @@ class Block
 
     /**
      * Inserts the given operation into the database
+     *
      * @param $transNum
      * @param $opNum
      * @param $type
@@ -146,6 +223,9 @@ class Block
             case 'pow':
                 $this->insertPow($transNum, $opNum, $data);
                 break;
+            case 'pow2':
+                $this->insertPow2($transNum, $opNum, $data);
+                break;
             case 'account_create':
                 $this->insertAccountCreate($transNum, $opNum, $data);
                 break;
@@ -181,6 +261,90 @@ class Block
         }
     }
 
+    /**
+     * Loads the data from the blockchain into the object
+     */
+    protected function loadDataFromChain()
+    {
+        $RPCClient                     = new RPCClient();
+        $blockData                     = $RPCClient->execute("get_block", array($this->blockNumber));
+        $this->blockID                 = $blockData['block_id'];
+        $this->dateTime                = $blockData['timestamp'];
+        $this->transactions            = $blockData['transactions'];
+        $this->previous                = $blockData['previous'];
+        $this->witness                 = $blockData['witness'];
+        $this->witness_signature       = $blockData['witness_signature'];
+        $this->transaktion_merkle_root = $blockData['transaction_merkle_root'];
+    }
+
+    /**
+     * Loads the data from the given array into the object.
+     * This can be used for mass imports, when you want to run paralell guzzle requests to enter a lot of blocks simultanously
+     *
+     * @param array $blockData
+     */
+    protected function loadDataFromArray(array $blockData)
+    {
+        $this->blockID                 = $blockData['block_id'];
+        $this->dateTime                = $blockData['timestamp'];
+        $this->transactions            = $blockData['transactions'];
+        $this->previous                = $blockData['previous'];
+        $this->witness                 = $blockData['witness'];
+        $this->witness_signature       = $blockData['witness_signature'];
+        $this->transaktion_merkle_root = $blockData['transaction_merkle_root'];
+    }
+
+    /**
+     * Validates the block data.
+     * Throws an exception if the validation fails
+     *
+     * @param array $blockData
+     *
+     *
+     * @return true - Returns true on success.
+     * @throws \Exception
+     */
+    protected function validateBlockData(array $blockData)
+    {
+        if (!is_array($blockData)) {
+            throw new \Exception("The Blockdata has the wrong format. Expected: array  Received ".gettype($blockData));
+        }
+
+        if (!isset($blockData['block_id'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!isset($blockData['timestamp'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!isset($blockData['transactions'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!is_array($blockData['transactions'])) {
+            throw new \Exception("The Transactions have the wrong format. Expected: array  Received ".gettype($blockData['transactions']));
+        }
+
+        if (!isset($blockData['previous'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!isset($blockData['witness'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!isset($blockData['witness_signature'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        if (!isset($blockData['transaction_merkle_root'])) {
+            throw new \Exception("Missing key in block data: 'block_id'");
+        }
+
+        return true;
+    }
+
     #region Operation Inserts
 
     /**
@@ -196,16 +360,16 @@ class Block
             "sbds_tx_votes",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "operation_type" => "vote",
+                "operation_num"   => $opNum,
+                "operation_type"  => "vote",
                 // Data
-                "timestamp" => $this->dateTime,
-                "voter" => $data['voter'],
-                "author" => $data['author'],
-                "permlink" => $data['permlink'],
-                "weight" => $data['weight']
+                "timestamp"       => $this->dateTime,
+                "voter"           => $data['voter'],
+                "author"          => $data['author'],
+                "permlink"        => $data['permlink'],
+                "weight"          => $data['weight']
             )
         );
     }
@@ -223,19 +387,19 @@ class Block
             "sbds_tx_comments",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "operation_type" => "comment",
+                "operation_num"   => $opNum,
+                "operation_type"  => "comment",
                 // Data
-                "timestamp" => $this->dateTime,
-                "author" => $data['author'],
-                "permlink" => $data['permlink'],
-                "parent_author" => $data['parent_author'],
+                "timestamp"       => $this->dateTime,
+                "author"          => $data['author'],
+                "permlink"        => $data['permlink'],
+                "parent_author"   => $data['parent_author'],
                 "parent_permlink" => $data['parent_permlink'],
-                "title" => $data['title'],
-                "body" => $data['body'],
-                "json_metadata" => $data['json_metadata']
+                "title"           => $data['title'],
+                "body"            => $data['body'],
+                "json_metadata"   => $data['json_metadata']
             )
         );
     }
@@ -253,16 +417,16 @@ class Block
             "sbds_tx_custom_jsons",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => "custom_json",
+                "block_num"              => $this->blockNumber,
+                "transaction_num"        => $transNum,
+                "operation_num"          => $opNum,
+                "timestamp"              => $this->dateTime,
+                "operation_type"         => "custom_json",
                 // Data
-                "tid" => $data['id'],
-                "required_auths" => json_encode($data['required_auths']),
+                "tid"                    => $data['id'],
+                "required_auths"         => json_encode($data['required_auths']),
                 "required_posting_auths" => json_encode($data['required_posting_auths']),
-                "json" => $data['json']
+                "json"                   => $data['json']
             )
         );
     }
@@ -278,24 +442,24 @@ class Block
     {
 
         // Split currency and amount
-        $amount = explode(" ", $data['amount'])[0];
+        $amount   = explode(" ", $data['amount'])[0];
         $currency = explode(" ", $data['amount'])[1];
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfers",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => "transfer",
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => "transfer",
                 // Data
-                "from" => $data['from'],
-                "to" => $data['to'],
-                "amount" => $amount,
-                "amount_symbol" => $currency,
-                "memo" => $data['memo']
+                "from"            => $data['from'],
+                "to"              => $data['to'],
+                "amount"          => $amount,
+                "amount_symbol"   => $currency,
+                "memo"            => $data['memo']
             )
         );
     }
@@ -313,16 +477,16 @@ class Block
             "sbds_tx_claim_reward_balances",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'claim_reward_balance',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'claim_reward_balance',
                 // Data
-                "account" => $data['account'],
-                "reward_steem" => str_replace(" STEEM", "", $data['reward_steem']),
-                "reward_sbd" => str_replace(" SBD", "", $data['reward_sbd']),
-                "reward_vests" => str_replace(" VESTS", "", $data['reward_vests']),
+                "account"         => $data['account'],
+                "reward_steem"    => str_replace(" STEEM", "", $data['reward_steem']),
+                "reward_sbd"      => str_replace(" SBD", "", $data['reward_sbd']),
+                "reward_vests"    => str_replace(" VESTS", "", $data['reward_vests']),
             )
         );
     }
@@ -341,15 +505,15 @@ class Block
             "sbds_tx_account_updates",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'account_update',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'account_update',
                 // Data
-                "account" => $data['account'],
-                "memo_key" => $data['memo_key'],
-                "json_metadata" => $data['json_metadata']
+                "account"         => $data['account'],
+                "memo_key"        => $data['memo_key'],
+                "json_metadata"   => $data['json_metadata']
 
             )
         );
@@ -364,23 +528,23 @@ class Block
      */
     protected function insertTransferToVesting($transNum, $opNum, $data)
     {
-        $amount = explode(" ", $data['amount'])[0];
+        $amount   = explode(" ", $data['amount'])[0];
         $currency = explode(" ", $data['amount'])[1];
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_to_vestings",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'transfer_to_vesting',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'transfer_to_vesting',
                 // Data
-                "from" => $data['from'],
-                "to" => $data['to'],
-                "amount" => $amount,
-                "amount_symbol" => $currency
+                "from"            => $data['from'],
+                "to"              => $data['to'],
+                "amount"          => $amount,
+                "amount_symbol"   => $currency
 
             )
         );
@@ -400,20 +564,20 @@ class Block
             "sbds_tx_limit_order_creates",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'limit_order_create',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'limit_order_create',
                 // Data
-                "owner" => $data['owner'],
-                "orderid" => $data['orderid'],
+                "owner"           => $data['owner'],
+                "orderid"         => $data['orderid'],
                 // TODO Check again for cancel value in limit_order_create
                 //"cancel" => $data[''],
-                "amount_to_sell" => $data['amount_to_sell'],
-                "min_to_receive" => $data['min_to_receive'],
-                "fill_or_kill" => $data['fill_or_kill'],
-                "expiration" => $data['expiration']
+                "amount_to_sell"  => $data['amount_to_sell'],
+                "min_to_receive"  => $data['min_to_receive'],
+                "fill_or_kill"    => $data['fill_or_kill'],
+                "expiration"      => $data['expiration']
             )
         );
     }
@@ -431,14 +595,14 @@ class Block
             "sbds_tx_feed_publishes",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'feed_publish',
+                "block_num"           => $this->blockNumber,
+                "transaction_num"     => $transNum,
+                "operation_num"       => $opNum,
+                "timestamp"           => $this->dateTime,
+                "operation_type"      => 'feed_publish',
                 // Data
-                "publisher" => $data['publisher'],
-                "exchange_rate_base" => $data['exchange_rate']['base'],
+                "publisher"           => $data['publisher'],
+                "exchange_rate_base"  => $data['exchange_rate']['base'],
                 "exchange_rate_quote" => $data['exchange_rate']['quote']
             )
         );
@@ -457,21 +621,21 @@ class Block
             "sbds_tx_account_create_with_delegations",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'account_create_with_delegation',
+                "block_num"        => $this->blockNumber,
+                "transaction_num"  => $transNum,
+                "operation_num"    => $opNum,
+                "timestamp"        => $this->dateTime,
+                "operation_type"   => 'account_create_with_delegation',
                 // Data
-                "fee" => $data['fee'],
-                "delegation" => $data['delegation'],
-                "creator" => $data['creator'],
+                "fee"              => $data['fee'],
+                "delegation"       => $data['delegation'],
+                "creator"          => $data['creator'],
                 "new_account_name" => $data['new_account_name'],
-                "owner_key" => $data['owner']['key_auths'][0][0],
-                "active_key" => $data['active']['key_auths'][0][0],
-                "posting_key" => $data['posting']['key_auths'][0][0],
-                "memo_key" => $data['memo_key'],
-                "json_metadata" => $data['json_metadata']
+                "owner_key"        => $data['owner']['key_auths'][0][0],
+                "active_key"       => $data['active']['key_auths'][0][0],
+                "posting_key"      => $data['posting']['key_auths'][0][0],
+                "memo_key"         => $data['memo_key'],
+                "json_metadata"    => $data['json_metadata']
             )
         );
     }
@@ -489,20 +653,20 @@ class Block
             "sbds_tx_account_creates",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'account_create',
+                "block_num"        => $this->blockNumber,
+                "transaction_num"  => $transNum,
+                "operation_num"    => $opNum,
+                "timestamp"        => $this->dateTime,
+                "operation_type"   => 'account_create',
                 // Data
-                "fee" => $data['fee'],
-                "creator" => $data['creator'],
+                "fee"              => $data['fee'],
+                "creator"          => $data['creator'],
                 "new_account_name" => $data['new_account_name'],
-                "owner_key" => $data['owner']['key_auths'][0][0],
-                "active_key" => $data['active']['key_auths'][0][0],
-                "posting_key" => $data['posting']['key_auths'][0][0],
-                "memo_key" => $data['memo_key'],
-                "json_metadata" => $data['json_metadata']
+                "owner_key"        => $data['owner']['key_auths'][0][0],
+                "active_key"       => $data['active']['key_auths'][0][0],
+                "posting_key"      => $data['posting']['key_auths'][0][0],
+                "memo_key"         => $data['memo_key'],
+                "json_metadata"    => $data['json_metadata']
             )
         );
     }
@@ -520,14 +684,40 @@ class Block
             "sbds_tx_pows",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'pow',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'pow',
                 // Data
-                "worker_account" => $data['worker_account'],
-                "block_id" => $data['block_id']
+                "worker_account"  => $data['worker_account'],
+                "block_id"        => $data['block_id']
+            )
+        );
+    }
+
+    /**
+     * Insert a 'pow2' operation into the database
+     *
+     * @param $transNum
+     * @param $opNum
+     * @param $data
+     */
+    protected function insertPow2($transNum, $opNum, $data)
+    {
+        
+        Parser::getDatabase()->insert(
+            "sbds_tx_pow2s",
+            array(
+                // Meta
+                "block_num"       => $this->blockNumber,
+                "transaction_num" => $transNum,
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'pow2',
+                // Data
+                "worker_account"  => $data['work'][1]['input']['worker_account'],
+                "block_id"        => $data['work'][1]['input']['nonce']
             )
         );
     }
@@ -545,15 +735,15 @@ class Block
             "sbds_tx_converts",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'convert',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'convert',
                 // Data
-                "owner" => $data['owner'],
-                "requestid" => $data['requestid'],
-                "amount" => $data['amount']
+                "owner"           => $data['owner'],
+                "requestid"       => $data['requestid'],
+                "amount"          => $data['amount']
 
             )
         );
@@ -572,15 +762,15 @@ class Block
             "sbds_tx_account_witness_votes",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'account_witness_vote',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'account_witness_vote',
                 // Data
-                "account" => $data['account'],
-                "witness" => $data['witness'],
-                "approve" => $data['approve']
+                "account"         => $data['account'],
+                "witness"         => $data['witness'],
+                "approve"         => $data['approve']
             )
         );
     }
@@ -598,15 +788,15 @@ class Block
             "sbds_tx_delegate_vesting_shares",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'delegate_vesting_shares',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'delegate_vesting_shares',
                 // Data
-                "delegator" => $data['delegator'],
-                "delegatee" => $data['delegatee'],
-                "vesting_shares" => $data['approve']
+                "delegator"       => $data['delegator'],
+                "delegatee"       => $data['delegatee'],
+                "vesting_shares"  => $data['approve']
             )
         );
     }
@@ -625,17 +815,17 @@ class Block
             "sbds_tx_comments_options",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'comment_options',
+                "block_num"              => $this->blockNumber,
+                "transaction_num"        => $transNum,
+                "operation_num"          => $opNum,
+                "timestamp"              => $this->dateTime,
+                "operation_type"         => 'comment_options',
                 // Data
-                "author" => $data['author'],
-                "permlink" => $data['permlink'],
-                "max_accepted_payout" => $data['max_accepted_payout'],
-                "percent_steem_dollars" => $data['percent_steem_dollars'],
-                "allow_votes" => $data['allow_votes'],
+                "author"                 => $data['author'],
+                "permlink"               => $data['permlink'],
+                "max_accepted_payout"    => $data['max_accepted_payout'],
+                "percent_steem_dollars"  => $data['percent_steem_dollars'],
+                "allow_votes"            => $data['allow_votes'],
                 "allow_curation_rewards" => $data['allow_curation_rewards']
             )
         );
@@ -655,14 +845,14 @@ class Block
             "sbds_tx_limit_order_cancels",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'limit_order_cancel',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'limit_order_cancel',
                 // Data
-                "owner" => $data['owner'],
-                "orderid" => $data['orderid']
+                "owner"           => $data['owner'],
+                "orderid"         => $data['orderid']
             )
         );
     }
@@ -681,14 +871,14 @@ class Block
             "sbds_tx_delete_comments",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'delete_comment',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'delete_comment',
                 // Data
-                "author" => $data['author'],
-                "permlink" => $data['permlink']
+                "author"          => $data['author'],
+                "permlink"        => $data['permlink']
             )
         );
     }
@@ -706,19 +896,19 @@ class Block
             "sbds_tx_witness_updates",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'witness_update',
+                "block_num"                  => $this->blockNumber,
+                "transaction_num"            => $transNum,
+                "operation_num"              => $opNum,
+                "timestamp"                  => $this->dateTime,
+                "operation_type"             => 'witness_update',
                 // Data
-                "owner" => $data['owner'],
-                "url" => $data['url'],
-                "block_signing_key" => $data['block_signing_key'],
+                "owner"                      => $data['owner'],
+                "url"                        => $data['url'],
+                "block_signing_key"          => $data['block_signing_key'],
                 "props_account_creation_fee" => $data['props']['account_creation_fee'],
-                "props_maximum_block_size" => $data['props']['maximum_block_size'],
-                "props_sbd_interest_rate" => $data['props']['sbd_interest_rate'],
-                "fee" => $data['fee']
+                "props_maximum_block_size"   => $data['props']['maximum_block_size'],
+                "props_sbd_interest_rate"    => $data['props']['sbd_interest_rate'],
+                "fee"                        => $data['fee']
             )
         );
     }
@@ -736,16 +926,16 @@ class Block
             "sbds_tx_withdraw_vesting_routes",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'set_withdraw_vesting_route',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'set_withdraw_vesting_route',
                 // Data
-                "from_account" => $data['from_account'],
-                "to_account" => $data['to_account'],
-                "percent" => $data['percent'],
-                "auto_vest" => $data['auto_vest']
+                "from_account"    => $data['from_account'],
+                "to_account"      => $data['to_account'],
+                "percent"         => $data['percent'],
+                "auto_vest"       => $data['auto_vest']
             )
         );
     }
@@ -759,24 +949,24 @@ class Block
      */
     protected function insertTransferToSavings($transNum, $opNum, $data)
     {
-        $amount = explode(" ", $data['amount'])[0];
+        $amount   = explode(" ", $data['amount'])[0];
         $currency = explode(" ", $data['amount'])[1];
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_to_savings",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'transfer_to_savings',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'transfer_to_savings',
                 // Data
-                "from" => $data['from'],
-                "to" => $data['to'],
-                "amount" => $amount,
-                "amount_symbol" => $currency,
-                "memo" => $data['memo']
+                "from"            => $data['from'],
+                "to"              => $data['to'],
+                "amount"          => $amount,
+                "amount_symbol"   => $currency,
+                "memo"            => $data['memo']
 
             )
         );
@@ -795,14 +985,14 @@ class Block
             "sbds_tx_cancel_transfer_from_savings",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'cancel_transfer_from_savings',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'cancel_transfer_from_savings',
                 // Data
-                "from" => $data['from'],
-                "request_id" => $data['request_id']
+                "from"            => $data['from'],
+                "request_id"      => $data['request_id']
             )
         );
     }
@@ -820,14 +1010,14 @@ class Block
             "sbds_tx_withdraw_vestings",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'withdraw_vesting',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'withdraw_vesting',
                 // Data
-                "account" => $data['account'],
-                "vesting_shares" => $data['vesting_shares']
+                "account"         => $data['account'],
+                "vesting_shares"  => $data['vesting_shares']
             )
         );
     }
@@ -841,25 +1031,25 @@ class Block
      */
     protected function insertTransferFromSavings($transNum, $opNum, $data)
     {
-        $amount = explode(" ", $data['amount'])[0];
+        $amount   = explode(" ", $data['amount'])[0];
         $currency = explode(" ", $data['amount'])[0];
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_from_savings",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'transfer_from_savings',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'transfer_from_savings',
                 // Data
-                "from" => $data['from'],
-                "to" => $data['to'],
-                "amount" => $amount,
-                "amount_symbol" => $currency,
-                "memo" => $data['memo'],
-                "request_id" => $data['request_id']
+                "from"            => $data['from'],
+                "to"              => $data['to'],
+                "amount"          => $amount,
+                "amount_symbol"   => $currency,
+                "memo"            => $data['memo'],
+                "request_id"      => $data['request_id']
             )
         );
     }
@@ -877,33 +1067,17 @@ class Block
             "sbds_tx_account_witness_proxies",
             array(
                 // Meta
-                "block_num" => $this->blockNumber,
+                "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
-                "operation_num" => $opNum,
-                "timestamp" => $this->dateTime,
-                "operation_type" => 'account_witness_proxy',
+                "operation_num"   => $opNum,
+                "timestamp"       => $this->dateTime,
+                "operation_type"  => 'account_witness_proxy',
                 // Data
-                "account" => $data['account'],
-                "Proxy" => $data['proxy']
+                "account"         => $data['account'],
+                "Proxy"           => $data['proxy']
             )
         );
     }
 
     #endregion
-
-    /**
-     * Loads the data from the blockchain into the object
-     */
-    protected function loadDataFromChain()
-    {
-        $RPCClient = new RPCClient();
-        $blockData = $RPCClient->execute("get_block", array($this->blockNumber));
-        $this->blockID = $blockData['block_id'];
-        $this->dateTime = $blockData['timestamp'];
-        $this->transactions = $blockData['transactions'];
-        $this->previous = $blockData['previous'];
-        $this->witness = $blockData['witness'];
-        $this->witness_signature = $blockData['witness_signature'];
-        $this->transaktion_merkle_root = $blockData['transaction_merkle_root'];
-    }
 }
