@@ -16,6 +16,10 @@ It is possible to parse either one single block, a range of blocks or run a cont
 
 ## Installation
 
+```
+git clone 
+```
+
 ## Usage
 
 ## Currently supported Operations
