@@ -27,12 +27,16 @@ mv etc/config.ini.php.dist etc/config.ini.php
 nano etc/config.ini.php
 ```
 
-**Step 3** Run composer
+**Step 3** Create Database
+* Create da Database
+* Import the SQL File `sql/createTables.sql`
+
+**Step 4** Run composer
 ```
 composer install
 ```
 
-**Step 4** Run the parser
+**Step 5** Run the parser
 ```
 php run.php
 ```
