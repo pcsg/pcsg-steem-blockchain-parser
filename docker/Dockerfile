@@ -18,7 +18,7 @@ RUN set -ex; \
 
 RUN git clone https://dev.quiqqer.com/pcsg/steemit-blockchain-parser.git /app/
 
-RUN mv /app/etc/config.ini.php.dist /app/etc/config.ini.php.dist
+RUN mv /app/etc/config.ini.php.dist /app/etc/config.ini.php
 
 RUN wget -O /usr/local/bin/composer https://getcomposer.org/download/1.6.3/composer.phar
 RUN chmod +x /usr/local/bin/composer
