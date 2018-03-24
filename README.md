@@ -16,23 +16,57 @@ It is possible to parse either one single block, a range of blocks or run a cont
 
 ## Installation
 
+**Step 1** Clone the repository
 ```
-git clone 
+git clone git@dev.quiqqer.com:pcsg/steemit-blockchain-parser.git
 ```
 
-## Usage
+**Step 2** Edit the config file
+```
+mv etc/config.ini.php.dist etc/config.ini.php
+nano etc/config.ini.php
+```
 
-## Currently supported Operations
-* [ ] vote
-* [ ] custom_json
-* [ ] transfer
-* [ ] comment
-* [ ] comment_options
-* [ ] claim_reward_balance
-* [ ] account_update
-* [ ] delete_comment
-* [ ] transfer_to_vesting
-* [ ] limit_order_create
-* [ ] delegate_vesting_shares
-* [ ] limit_order_cancel
-* [ ] feed_publish
+**Step 3** Run composer
+```
+composer install
+```
+
+**Step 4** Run the parser
+```
+php run.php
+```
+
+## Additional steps
+
+**Keep the parser running**
+
+### Supervisor
+
+```
+apt-get install supervisor
+```
+
+```
+nano /etc/supervisor/conf.d/sbpp.conf
+mkdir <sbpp-directory>/logs/
+```
+
+```
+[program:sbpp]
+command=/usr/bin/php run.php
+process_name = %(program_name)s-80%(process_num)02d
+stdout_logfile = <sbpp-directory>/logs/sbpp%(process_num)02d.log
+stdout_logfile_maxbytes=100MB
+stdout_logfile_backups=10
+numprocs=1
+directory=<sbpp-directory>
+stopwaitsecs=10
+user=<user>
+```
+
+```
+service supervisor restart
+```
+
+
