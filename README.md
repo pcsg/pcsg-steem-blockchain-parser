@@ -18,7 +18,7 @@ It is possible to parse either one single block, a range of blocks or run a cont
 
 **Step 1** Clone the repository
 ```
-git clone git@dev.quiqqer.com:pcsg/steemit-blockchain-parser.git
+git clone git@dev.quiqqer.com:pcsg/steem-blockchain-parser.git
 ```
 
 **Step 2** Edit the config file
