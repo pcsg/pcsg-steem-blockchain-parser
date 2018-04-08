@@ -1,13 +1,13 @@
 <?php
 
-namespace PCSG\SBPP;
+namespace PCSG\SteemBlockchainParser;
 
 use JsonRPC\Client;
 
 /**
  * Class RPCClient
  *
- * @package PCSG\SBPP
+ * @package PCSG\SteemBlockchainParser
  */
 class RPCClient
 {

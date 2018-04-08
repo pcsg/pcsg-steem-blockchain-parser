@@ -1,11 +1,11 @@
 <?php
 
-namespace PCSG\SBPP;
+namespace PCSG\SteemBlockchainParser;
 
 /**
  * Class Config
  *
- * @package PCSG\SBPP
+ * @package PCSG\SteemBlockchainParser
  */
 class Config
 {
@@ -75,7 +75,7 @@ class Config
      */
     public static function getInstance()
     {
-        if(!is_null(self::$Instance)){
+        if (!is_null(self::$Instance)) {
             return self::$Instance;
         }
 

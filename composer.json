@@ -23,7 +23,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "PCSG\\SBPP\\": "src\/PCSG\/SBPP"
+            "PCSG\\SteemBlockchainParser\\": "src\/PCSG\/SteemBlockchainParser"
         }
     }
 }

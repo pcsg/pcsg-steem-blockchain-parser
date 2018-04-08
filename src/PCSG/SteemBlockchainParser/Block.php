@@ -1,13 +1,13 @@
 <?php
 
-namespace PCSG\SBPP;
+namespace PCSG\SteemBlockchainParser;
 
 use QUITest\QUI\Utils\Text\QUIUtilsTextWordTest;
 
 /**
  * Class Block
  *
- * @package PCSG\SBPP
+ * @package PCSG\SteemBlockchainParser
  */
 class Block
 {
@@ -796,7 +796,7 @@ class Block
                 // Data
                 "delegator"       => $data['delegator'],
                 "delegatee"       => $data['delegatee'],
-                "vesting_shares"  => $data['approve']
+                "vesting_shares"  => $data['vesting_shares']
             )
         );
     }

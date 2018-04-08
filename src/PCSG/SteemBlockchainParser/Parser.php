@@ -1,6 +1,6 @@
 <?php
 
-namespace PCSG\SBPP;
+namespace PCSG\SteemBlockchainParser;
 
 use GuzzleHttp\Psr7\Response;
 use JsonRPC\Client;
@@ -8,7 +8,7 @@ use JsonRPC\Client;
 /**
  * Class Parser
  *
- * @package PCSG\SBPP
+ * @package PCSG\SteemBlockchainParser
  */
 class Parser
 {

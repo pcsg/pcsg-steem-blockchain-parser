@@ -1,6 +1,6 @@
 <?php
 
-namespace PCSG\SBPP;
+namespace PCSG\SteemBlockchainParser;
 
 class Output
 {
