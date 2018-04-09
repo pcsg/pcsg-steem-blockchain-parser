@@ -1,13 +1,19 @@
-# PCSG STEEM Blockchain Parser
+PCSG STEEM Blockchain Parser
+======
 
-## Description
+![PCSG STEEM Blockchain Parser](bin/header-steemit-green.png)
+
+Description
+------
 
 The STEEM Blockchain Parser will parse the STEEM Blockchain JSON-RPC Endpoints
 and insert the data into a MySql Database. 
 It is possible to parse either a single block, a range of blocks 
 or run a continuous loop to parse all available blocks.  
 
-## Features
+Features
+------
+
 * [x] Parse a single block
 * [x] Parse a range of Blocks
 * [ ] Verify the Database (Check all blocks and insert missing data)
@@ -15,8 +21,8 @@ or run a continuous loop to parse all available blocks.
 * [ ] Highly configurable
 * [x] Easily readable output
 
-## Installation
-
+Installation
+------
 
 ### Manually
 **Step 1** Clone the repository
@@ -61,7 +67,8 @@ docker run --name steemit-parser \
  
 **Hint**: To run the container in the background you need to add the `-d` flag to the `docker run` command.
 
-## Additional steps
+Additional steps
+------
 
 ### Keep the parser running
 
