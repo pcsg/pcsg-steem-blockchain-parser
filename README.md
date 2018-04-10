@@ -52,6 +52,12 @@ php run.php
 
 ### Docker
 
+**Step 1** Database
+Create a database on a database server (your docker containers must be able to connect to it)
+Execute the `sql/createTables.sql` SQL-Queries to create the databases table structure
+
+
+**Step 2** Docker container
 We provide a docker container for ease of use.  
 Change the environment variables and run the following command to get the container up and running.  
 ```
