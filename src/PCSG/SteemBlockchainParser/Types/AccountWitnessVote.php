@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This file contains PCSG\SteemBlockchainParser\Types\Vote
+ * This file contains PCSG\SteemBlockchainParser\Types\AccountWitnessVote
  */
 
 namespace PCSG\SteemBlockchainParser\Types;
@@ -9,12 +9,12 @@ namespace PCSG\SteemBlockchainParser\Types;
 use PCSG\SteemBlockchainParser\Block;
 
 /**
- * Class Vote
- * - Handle a vote
+ * Class AccountWitnessVote
+ * - Handle an account witness vote
  *
  * @package PCSG\SteemBlockchainParser\Types
  */
-class Vote extends AbstractType
+class AccountWitnessVote extends AbstractType
 {
     /**
      * Process the data
@@ -30,19 +30,18 @@ class Vote extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
-        $this->getDatabase()->insert("sbds_tx_votes", [
+        $this->getDatabase()->insert("sbds_tx_account_witness_votes", [
             // Meta
             "block_num"       => $Block->getBlockNumber(),
             "transaction_num" => $transNum,
             "operation_num"   => $opNum,
-            "operation_type"  => "vote",
+            "timestamp"       => $Block->getDateTime(),
+            "operation_type"  => 'account_witness_vote',
 
             // Data
-            "timestamp"       => $this->getDatabase(),
-            "voter"           => $data['voter'],
-            "author"          => $data['author'],
-            "permlink"        => $data['permlink'],
-            "weight"          => $data['weight']
+            "account"         => $data['account'],
+            "witness"         => $data['witness'],
+            "approve"         => $data['approve']
         ]);
     }
 }

@@ -6,8 +6,21 @@
 
 namespace PCSG\SteemBlockchainParser;
 
+use PCSG\SteemBlockchainParser\Types\AccountCreate;
+use PCSG\SteemBlockchainParser\Types\AccountCreateWithDelegation;
+use PCSG\SteemBlockchainParser\Types\AccountUpdate;
+use PCSG\SteemBlockchainParser\Types\AccountWitnessVote;
 use PCSG\SteemBlockchainParser\Types\ClaimRewardBalance;
 use PCSG\SteemBlockchainParser\Types\Comment;
+use PCSG\SteemBlockchainParser\Types\CommentOptions;
+use PCSG\SteemBlockchainParser\Types\Convert;
+use PCSG\SteemBlockchainParser\Types\CustomJSON;
+use PCSG\SteemBlockchainParser\Types\FeedPublish;
+use PCSG\SteemBlockchainParser\Types\LimitOrderCreate;
+use PCSG\SteemBlockchainParser\Types\Pow;
+use PCSG\SteemBlockchainParser\Types\Pow2;
+use PCSG\SteemBlockchainParser\Types\Transfer;
+use PCSG\SteemBlockchainParser\Types\TransferToVesting;
 use PCSG\SteemBlockchainParser\Types\Vote;
 
 /**
@@ -225,19 +238,19 @@ class Block
                 break;
 
             case 'transfer':
-                $this->insertTransfer($transNum, $opNum, $data);
+                $Type = new Transfer();
                 break;
 
             case 'custom_json':
-                $this->insertCustomJson($transNum, $opNum, $data);
+                $Type = new CustomJSON();
                 break;
 
             case 'comment_options':
-                $this->insertCommentOptions($transNum, $opNum, $data);
+                $Type = new CommentOptions();
                 break;
 
             case 'account_update':
-                $this->insertAccountUpdate($transNum, $opNum, $data);
+                $Type = new AccountUpdate();
                 break;
 
             case 'delete_comment':
@@ -245,11 +258,11 @@ class Block
                 break;
 
             case 'transfer_to_vesting':
-                $this->insertTransferToVesting($transNum, $opNum, $data);
+                $Type = new TransferToVesting();
                 break;
 
             case 'limit_order_create':
-                $this->insertLimitOrderCreate($transNum, $opNum, $data);
+                $Type = new LimitOrderCreate();
                 break;
 
             case 'delegate_vesting_shares':
@@ -261,30 +274,30 @@ class Block
                 break;
 
             case 'feed_publish':
-                $this->insertFeedPublish($transNum, $opNum, $data);
+                $Type = new FeedPublish();
                 break;
 
             case 'account_create_with_delegation':
-                $this->insertAccountCreateWithDelegation($transNum, $opNum, $data);
+                $Type = new AccountCreateWithDelegation();
                 break;
             case 'account_witness_vote':
-                $this->insertAccountWitnessVote($transNum, $opNum, $data);
+                $Type = new AccountWitnessVote();
                 break;
 
             case 'convert':
-                $this->insertConvert($transNum, $opNum, $data);
+                $Type = new Convert();
                 break;
 
             case 'pow':
-                $this->insertPow($transNum, $opNum, $data);
+                $Type = new Pow();
                 break;
 
             case 'pow2':
-                $this->insertPow2($transNum, $opNum, $data);
+                $Type = new Pow2();
                 break;
 
             case 'account_create':
-                $this->insertAccountCreate($transNum, $opNum, $data);
+                $Type = new AccountCreate();
                 break;
 
             case 'witness_update':
@@ -422,374 +435,6 @@ class Block
     #region Operation Inserts
 
     /**
-     * Inserts a custom json entry into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertCustomJson($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_custom_jsons",
-            [
-                // Meta
-                "block_num"              => $this->blockNumber,
-                "transaction_num"        => $transNum,
-                "operation_num"          => $opNum,
-                "timestamp"              => $this->dateTime,
-                "operation_type"         => "custom_json",
-                // Data
-                "tid"                    => $data['id'],
-                "required_auths"         => json_encode($data['required_auths']),
-                "required_posting_auths" => json_encode($data['required_posting_auths']),
-                "json"                   => $data['json']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a transfer operation
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertTransfer($transNum, $opNum, $data)
-    {
-
-        // Split currency and amount
-        $amount   = explode(" ", $data['amount'])[0];
-        $currency = explode(" ", $data['amount'])[1];
-
-        Parser::getDatabase()->insert(
-            "sbds_tx_transfers",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => "transfer",
-                // Data
-                "from"            => $data['from'],
-                "to"              => $data['to'],
-                "amount"          => $amount,
-                "amount_symbol"   => $currency,
-                "memo"            => $data['memo']
-            ]
-        );
-    }
-
-    /**
-     * Inserts account updates into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertAccountUpdate($transNum, $opNum, $data)
-    {
-        // TODO Check key_auth1 and key_auth2 again
-        Parser::getDatabase()->insert(
-            "sbds_tx_account_updates",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'account_update',
-                // Data
-                "account"         => $data['account'],
-                "memo_key"        => $data['memo_key'],
-                "json_metadata"   => $data['json_metadata']
-
-            ]
-        );
-    }
-
-    /**
-     * Inserts an transfer to vestin operation
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertTransferToVesting($transNum, $opNum, $data)
-    {
-        $amount   = explode(" ", $data['amount'])[0];
-        $currency = explode(" ", $data['amount'])[1];
-
-        Parser::getDatabase()->insert(
-            "sbds_tx_transfer_to_vestings",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'transfer_to_vesting',
-                // Data
-                "from"            => $data['from'],
-                "to"              => $data['to'],
-                "amount"          => $amount,
-                "amount_symbol"   => $currency
-
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'limit_order_create' Operation in to the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertLimitOrderCreate($transNum, $opNum, $data)
-    {
-
-        Parser::getDatabase()->insert(
-            "sbds_tx_limit_order_creates",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'limit_order_create',
-                // Data
-                "owner"           => $data['owner'],
-                "orderid"         => $data['orderid'],
-                // TODO Check again for cancel value in limit_order_create
-                //"cancel" => $data[''],
-                "amount_to_sell"  => $data['amount_to_sell'],
-                "min_to_receive"  => $data['min_to_receive'],
-                "fill_or_kill"    => $data['fill_or_kill'],
-                "expiration"      => $data['expiration']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'feed_publish' Operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertFeedPublish($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_feed_publishes",
-            [
-                // Meta
-                "block_num"           => $this->blockNumber,
-                "transaction_num"     => $transNum,
-                "operation_num"       => $opNum,
-                "timestamp"           => $this->dateTime,
-                "operation_type"      => 'feed_publish',
-                // Data
-                "publisher"           => $data['publisher'],
-                "exchange_rate_base"  => $data['exchange_rate']['base'],
-                "exchange_rate_quote" => $data['exchange_rate']['quote']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'account_create_with_delegation' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertAccountCreateWithDelegation($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_account_create_with_delegations",
-            [
-                // Meta
-                "block_num"        => $this->blockNumber,
-                "transaction_num"  => $transNum,
-                "operation_num"    => $opNum,
-                "timestamp"        => $this->dateTime,
-                "operation_type"   => 'account_create_with_delegation',
-                // Data
-                "fee"              => $data['fee'],
-                "delegation"       => $data['delegation'],
-                "creator"          => $data['creator'],
-                "new_account_name" => $data['new_account_name'],
-                "owner_key"        => $data['owner']['key_auths'][0][0],
-                "active_key"       => $data['active']['key_auths'][0][0],
-                "posting_key"      => $data['posting']['key_auths'][0][0],
-                "memo_key"         => $data['memo_key'],
-                "json_metadata"    => $data['json_metadata']
-            ]
-        );
-    }
-
-    /**
-     * Insert an 'account_create' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertAccountCreate($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_account_creates",
-            [
-                // Meta
-                "block_num"        => $this->blockNumber,
-                "transaction_num"  => $transNum,
-                "operation_num"    => $opNum,
-                "timestamp"        => $this->dateTime,
-                "operation_type"   => 'account_create',
-                // Data
-                "fee"              => $data['fee'],
-                "creator"          => $data['creator'],
-                "new_account_name" => $data['new_account_name'],
-                "owner_key"        => $data['owner']['key_auths'][0][0],
-                "active_key"       => $data['active']['key_auths'][0][0],
-                "posting_key"      => $data['posting']['key_auths'][0][0],
-                "memo_key"         => $data['memo_key'],
-                "json_metadata"    => $data['json_metadata']
-            ]
-        );
-    }
-
-    /**
-     * Insert a 'pow' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertPow($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_pows",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'pow',
-                // Data
-                "worker_account"  => $data['worker_account'],
-                "block_id"        => $data['block_id']
-            ]
-        );
-    }
-
-    /**
-     * Insert a 'pow2' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertPow2($transNum, $opNum, $data)
-    {
-
-        Parser::getDatabase()->insert(
-            "sbds_tx_pow2s",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'pow2',
-                // Data
-                "worker_account"  => $data['work'][1]['input']['worker_account'],
-                "block_id"        => $data['work'][1]['input']['nonce']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'convert' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertConvert($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_converts",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'convert',
-                // Data
-                "owner"           => $data['owner'],
-                "requestid"       => $data['requestid'],
-                "amount"          => $data['amount']
-
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'account_witness_vote' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertAccountWitnessVote($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_account_witness_votes",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'account_witness_vote',
-                // Data
-                "account"         => $data['account'],
-                "witness"         => $data['witness'],
-                "approve"         => $data['approve']
-            ]
-        );
-    }
-
-    /**
      * Inserts a 'delegate_vesting_shares' operation into the database
      *
      * @param $transNum
@@ -813,38 +458,6 @@ class Block
                 "delegator"       => $data['delegator'],
                 "delegatee"       => $data['delegatee'],
                 "vesting_shares"  => $data['vesting_shares']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'comment_options' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertCommentOptions($transNum, $opNum, $data)
-    {
-        // TODO check extension key from blockchain - Currently unhandled
-        Parser::getDatabase()->insert(
-            "sbds_tx_comments_options",
-            [
-                // Meta
-                "block_num"              => $this->blockNumber,
-                "transaction_num"        => $transNum,
-                "operation_num"          => $opNum,
-                "timestamp"              => $this->dateTime,
-                "operation_type"         => 'comment_options',
-                // Data
-                "author"                 => $data['author'],
-                "permlink"               => $data['permlink'],
-                "max_accepted_payout"    => $data['max_accepted_payout'],
-                "percent_steem_dollars"  => $data['percent_steem_dollars'],
-                "allow_votes"            => $data['allow_votes'],
-                "allow_curation_rewards" => $data['allow_curation_rewards']
             ]
         );
     }

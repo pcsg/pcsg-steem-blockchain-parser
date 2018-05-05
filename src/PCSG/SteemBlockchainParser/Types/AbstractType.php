@@ -29,6 +29,7 @@ abstract class AbstractType
      * @param string $transNum
      * @param string $opNum
      * @param $data
+     *
      * @return mixed
      */
     abstract function process(Block $Block, $transNum, $opNum, $data);

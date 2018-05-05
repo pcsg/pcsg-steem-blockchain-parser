@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This file contains PCSG\SteemBlockchainParser\Types\ClaimRewardBalance
+ * This file contains PCSG\SteemBlockchainParser\Types\Transfer
  */
 
 namespace PCSG\SteemBlockchainParser\Types;
@@ -9,12 +9,12 @@ namespace PCSG\SteemBlockchainParser\Types;
 use PCSG\SteemBlockchainParser\Block;
 
 /**
- * Class ClaimRewardBalance
- * - Handle a claim_reward_balances
+ * Class Transfer
+ * - Handle a transfer
  *
  * @package PCSG\SteemBlockchainParser\Types
  */
-class ClaimRewardBalance extends AbstractType
+class Transfer extends AbstractType
 {
     /**
      * Process the data
@@ -30,19 +30,24 @@ class ClaimRewardBalance extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
-        $this->getDatabase()->insert("sbds_tx_claim_reward_balances", [
+        // Split currency and amount
+        $amount   = explode(" ", $data['amount'])[0];
+        $currency = explode(" ", $data['amount'])[1];
+
+        $this->getDatabase()->insert("sbds_tx_transfers", [
             // Meta
             "block_num"       => $Block->getBlockNumber(),
             "transaction_num" => $transNum,
             "operation_num"   => $opNum,
             "timestamp"       => $Block->getDateTime(),
-            "operation_type"  => 'claim_reward_balance',
+            "operation_type"  => "transfer",
 
             // Data
-            "account"         => $data['account'],
-            "reward_steem"    => str_replace(" STEEM", "", $data['reward_steem']),
-            "reward_sbd"      => str_replace(" SBD", "", $data['reward_sbd']),
-            "reward_vests"    => str_replace(" VESTS", "", $data['reward_vests']),
+            "from"            => $data['from'],
+            "to"              => $data['to'],
+            "amount"          => $amount,
+            "amount_symbol"   => $currency,
+            "memo"            => $data['memo']
         ]);
     }
 }

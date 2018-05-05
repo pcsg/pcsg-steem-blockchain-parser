@@ -23,7 +23,9 @@ class Comment extends AbstractType
      * @param string $transNum
      * @param string $opNum
      * @param $data
+     *
      * @return mixed|void
+     *
      * @throws \Exception
      */
     public function process(Block $Block, $transNum, $opNum, $data)
