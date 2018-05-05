@@ -15,13 +15,17 @@ use PCSG\SteemBlockchainParser\Types\Comment;
 use PCSG\SteemBlockchainParser\Types\CommentOptions;
 use PCSG\SteemBlockchainParser\Types\Convert;
 use PCSG\SteemBlockchainParser\Types\CustomJSON;
+use PCSG\SteemBlockchainParser\Types\DelegateVestingShares;
+use PCSG\SteemBlockchainParser\Types\DeleteComment;
 use PCSG\SteemBlockchainParser\Types\FeedPublish;
+use PCSG\SteemBlockchainParser\Types\LimitOrderCancel;
 use PCSG\SteemBlockchainParser\Types\LimitOrderCreate;
 use PCSG\SteemBlockchainParser\Types\Pow;
 use PCSG\SteemBlockchainParser\Types\Pow2;
 use PCSG\SteemBlockchainParser\Types\Transfer;
 use PCSG\SteemBlockchainParser\Types\TransferToVesting;
 use PCSG\SteemBlockchainParser\Types\Vote;
+use PCSG\SteemBlockchainParser\Types\WitnessUpdate;
 
 /**
  * Class Block
@@ -254,7 +258,7 @@ class Block
                 break;
 
             case 'delete_comment':
-                $this->insertDeleteComment($transNum, $opNum, $data);
+                $Type = new DeleteComment();
                 break;
 
             case 'transfer_to_vesting':
@@ -266,11 +270,11 @@ class Block
                 break;
 
             case 'delegate_vesting_shares':
-                $this->insertDelegateVestingShares($transNum, $opNum, $data);
+                $Type = new DelegateVestingShares();
                 break;
 
             case 'limit_order_cancel':
-                $this->insertLimitOrderCancel($transNum, $opNum, $data);
+                $Type = new LimitOrderCancel();
                 break;
 
             case 'feed_publish':
@@ -280,6 +284,7 @@ class Block
             case 'account_create_with_delegation':
                 $Type = new AccountCreateWithDelegation();
                 break;
+                
             case 'account_witness_vote':
                 $Type = new AccountWitnessVote();
                 break;
@@ -301,7 +306,7 @@ class Block
                 break;
 
             case 'witness_update':
-                $this->insertWitnessUpdate($transNum, $opNum, $data);
+                $Type = new WitnessUpdate();
                 break;
 
             case 'set_withdraw_vesting_route':
@@ -433,122 +438,6 @@ class Block
     }
 
     #region Operation Inserts
-
-    /**
-     * Inserts a 'delegate_vesting_shares' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertDelegateVestingShares($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_delegate_vesting_shares",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'delegate_vesting_shares',
-                // Data
-                "delegator"       => $data['delegator'],
-                "delegatee"       => $data['delegatee'],
-                "vesting_shares"  => $data['vesting_shares']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'limit_order_cancel' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertLimitOrderCancel($transNum, $opNum, $data)
-    {
-        // TODO Check if operation cancle should delete order from database
-        Parser::getDatabase()->insert(
-            "sbds_tx_limit_order_cancels",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'limit_order_cancel',
-                // Data
-                "owner"           => $data['owner'],
-                "orderid"         => $data['orderid']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a 'delete_comment' operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertDeleteComment($transNum, $opNum, $data)
-    {
-        // TODO Check if 'deleteCVomment' should delete comment from database
-        Parser::getDatabase()->insert(
-            "sbds_tx_delete_comments",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'delete_comment',
-                // Data
-                "author"          => $data['author'],
-                "permlink"        => $data['permlink']
-            ]
-        );
-    }
-
-    /**
-     * Inserts
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertWitnessUpdate($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_witness_updates",
-            [
-                // Meta
-                "block_num"                  => $this->blockNumber,
-                "transaction_num"            => $transNum,
-                "operation_num"              => $opNum,
-                "timestamp"                  => $this->dateTime,
-                "operation_type"             => 'witness_update',
-                // Data
-                "owner"                      => $data['owner'],
-                "url"                        => $data['url'],
-                "block_signing_key"          => $data['block_signing_key'],
-                "props_account_creation_fee" => $data['props']['account_creation_fee'],
-                "props_maximum_block_size"   => $data['props']['maximum_block_size'],
-                "props_sbd_interest_rate"    => $data['props']['sbd_interest_rate'],
-                "fee"                        => $data['fee']
-            ]
-        );
-    }
 
     /**
      * Inserts a 'set_withdraw_vesting_route' operation into thze database
