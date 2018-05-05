@@ -91,8 +91,11 @@ class Parser
                 $data = json_decode($json, true);
 
                 $id        = $data['id'];
-                $blockData = $data['result'];
+                $blockData = [];
 
+                if (isset($data['result'])) {
+                    $blockData = $data['result'];
+                }
 
                 if (empty($blockData)) {
                     $endOfBlockchain = $id;
