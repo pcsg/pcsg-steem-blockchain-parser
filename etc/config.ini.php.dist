@@ -3,7 +3,10 @@
 [steem]
 blockchainurl='https://api.steemit.com/'
 rpcurls[]='https://api.steemit.com/'
-rpcurls[]='https://api.steem.house/'
+;rpcurls[]='https://api.steem.house/'
+
+[block]
+start=22000000
 
 [requests]
 concurrent_requests=10
