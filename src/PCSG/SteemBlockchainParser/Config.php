@@ -29,19 +29,23 @@ class Config
      * Returns the value of the setting in the given section
      *
      * @param $section
-     * @param $config
+     * @param $config - optional
      *
      * @return mixed
      * @throws \Exception
      */
-    public function get($section, $config)
+    public function get($section, $config = false)
     {
         if (!isset($this->config[$section])) {
-            throw new \Exception("Invalid section '".$section."'");
+            throw new \Exception("Invalid section '".$section."'", 404);
+        }
+
+        if ($config === false) {
+            return $this->config[$section];
         }
 
         if (!isset($this->config[$section][$config])) {
-            throw new \Exception("Invalid setting '".$config."' in '".$section."'");
+            throw new \Exception("Invalid setting '".$config."' in '".$section."'", 404);
         }
 
         return $this->config[$section][$config];

@@ -115,8 +115,8 @@ class Block
         }
 
         // Insert the blocks operations into the database
-        foreach ($this->transactions as $transationIndex => $transactionData) {
-            $transactionNum = $transationIndex + 1;
+        foreach ($this->transactions as $transactionIndex => $transactionData) {
+            $transactionNum = $transactionIndex + 1;
             $operations     = $transactionData['operations'];
 
             foreach ($operations as $operationIndex => $operationDetails) {
@@ -230,6 +230,18 @@ class Block
     protected function insertOperation($transNum, $opNum, $type, $data)
     {
         Output::debug("  Inserting Operation b:{$this->blockNumber} t:{$transNum} o:{$opNum} of type ".$type);
+
+        try {
+            $observe = Config::getInstance()->get("observe");
+
+            if (isset($observe[$type]) && $observe[$type] === 0) {
+                return;
+            }
+        } catch (\Exception $Exception) {
+            if ($Exception->getCode() !== 404) {
+                Output::debug($Exception->getTraceAsString());
+            }
+        }
 
         switch ($type) {
             case 'vote':
@@ -349,9 +361,6 @@ class Block
         }
 
         $Type->process($this, $transNum, $opNum, $data);
-
-
-        // @todo API
     }
 
     /**

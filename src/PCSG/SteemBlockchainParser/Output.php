@@ -164,6 +164,7 @@ class Output
         $level     = isset($params['level']) ? $params['level'] : "";
 
         $prfx = "";
+
         if (!empty($timestamp)) {
             $prfx = $timestamp;
         }
@@ -177,6 +178,7 @@ class Output
 
     /**
      * Returns the configured output level
+     *
      * @return int
      * @throws \Exception
      */
