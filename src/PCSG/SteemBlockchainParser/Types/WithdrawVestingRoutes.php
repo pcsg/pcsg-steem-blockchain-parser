@@ -30,6 +30,12 @@ class WithdrawVestingRoutes extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
+        $autoVest = $data['auto_vest'];
+
+        if (empty($autoVest)) {
+            $autoVest = 0;
+        }
+
         $this->getDatabase()->insert("sbds_tx_withdraw_vesting_routes", [
             // Meta
             "block_num"       => $Block->getBlockNumber(),
@@ -42,7 +48,7 @@ class WithdrawVestingRoutes extends AbstractType
             "from_account"    => $data['from_account'],
             "to_account"      => $data['to_account'],
             "percent"         => $data['percent'],
-            "auto_vest"       => $data['auto_vest']
+            "auto_vest"       => $autoVest
         ]);
     }
 }
