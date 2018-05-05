@@ -35,6 +35,7 @@ class Block
      * Parses the given array into the block object and inserts all data into the database
      *
      * @param array $blockData
+     * @throws \Exception
      */
     public function parseArray(array $blockData)
     {
@@ -50,6 +51,7 @@ class Block
                     if (strpos($Exception->getMessage(), "1062 Duplicate entry") !== false) {
                         Output::warning("Skipped Block ".$this->blockNumber.": Already in Database");
                         Parser::getDatabase()->getPDO()->rollBack();
+
                         return;
                     }
                     break;
@@ -65,6 +67,7 @@ class Block
         foreach ($this->transactions as $transationIndex => $transactionData) {
             $transactionNum = $transationIndex + 1;
             $operations     = $transactionData['operations'];
+
             foreach ($operations as $operationIndex => $operationDetails) {
                 $operationNum = $operationIndex + 1;
                 $opType       = $operationDetails[0];
@@ -85,7 +88,7 @@ class Block
     }
 
     /**
-     *
+     * @throws \Exception
      */
     public function parseFromBlockChain()
     {
@@ -102,6 +105,7 @@ class Block
                     if (strpos($Exception->getMessage(), "1062 Duplicate entry") !== false) {
                         Output::warning("Skipped Block ".$this->blockNumber.": Already in Database");
                         Parser::getDatabase()->getPDO()->rollBack();
+
                         return;
                     }
                     break;
@@ -141,13 +145,15 @@ class Block
     }
 
     /**
-     * Inserts the blocks raw meta data into the databse
+     * Inserts the blocks raw meta data into the database
+     *
+     * @throws \Exception
      */
     protected function insertBlockIntoDatabase()
     {
         Parser::getDatabase()->insert(
             "sbds_core_blocks",
-            array(
+            [
                 "raw"                     => "",
                 "block_num"               => $this->blockNumber,
                 "previous"                => $this->previous,
@@ -155,7 +161,7 @@ class Block
                 "witness"                 => $this->witness,
                 "witness_signature"       => $this->witness_signature,
                 "transaction_merkle_root" => $this->transaktion_merkle_root
-            )
+            ]
         );
     }
 
@@ -166,6 +172,8 @@ class Block
      * @param $opNum
      * @param $type
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertOperation($transNum, $opNum, $type, $data)
     {
@@ -175,87 +183,113 @@ class Block
             case 'vote':
                 $this->insertVote($transNum, $opNum, $data);
                 break;
+
             case 'comment':
                 $this->insertComment($transNum, $opNum, $data);
                 break;
+
             case 'claim_reward_balance':
                 $this->insertClaimRewardBalanace($transNum, $opNum, $data);
                 break;
+
             case 'transfer':
                 $this->insertTransfer($transNum, $opNum, $data);
                 break;
+
             case 'custom_json':
                 $this->insertCustomJson($transNum, $opNum, $data);
                 break;
+
             case 'comment_options':
                 $this->insertCommentOptions($transNum, $opNum, $data);
                 break;
+
             case 'account_update':
                 $this->insertAccountUpdate($transNum, $opNum, $data);
                 break;
+
             case 'delete_comment':
                 $this->insertDeleteComment($transNum, $opNum, $data);
                 break;
+
             case 'transfer_to_vesting':
                 $this->insertTransferToVesting($transNum, $opNum, $data);
                 break;
+
             case 'limit_order_create':
                 $this->insertLimitOrderCreate($transNum, $opNum, $data);
                 break;
+
             case 'delegate_vesting_shares':
                 $this->insertDelegateVestingShares($transNum, $opNum, $data);
                 break;
+
             case 'limit_order_cancel':
                 $this->insertLimitOrderCancel($transNum, $opNum, $data);
                 break;
+
             case 'feed_publish':
                 $this->insertFeedPublish($transNum, $opNum, $data);
                 break;
+
             case 'account_create_with_delegation':
                 $this->insertAccountCreateWithDelegation($transNum, $opNum, $data);
                 break;
             case 'account_witness_vote':
                 $this->insertAccountWitnessVote($transNum, $opNum, $data);
                 break;
+
             case 'convert':
                 $this->insertConvert($transNum, $opNum, $data);
                 break;
+
             case 'pow':
                 $this->insertPow($transNum, $opNum, $data);
                 break;
+
             case 'pow2':
                 $this->insertPow2($transNum, $opNum, $data);
                 break;
+
             case 'account_create':
                 $this->insertAccountCreate($transNum, $opNum, $data);
                 break;
+
             case 'witness_update':
                 $this->insertWitnessUpdate($transNum, $opNum, $data);
                 break;
+
             case 'set_withdraw_vesting_route':
                 $this->insertWithdrawVestingRoutes($transNum, $opNum, $data);
                 break;
+
             case 'transfer_to_savings':
                 $this->insertTransferToSavings($transNum, $opNum, $data);
                 break;
+
             case 'cancel_transfer_from_savings':
                 $this->insertCancelTransferFromSavings($transNum, $opNum, $data);
                 break;
+
             case 'withdraw_vesting':
                 $this->insertWithdrawVesting($transNum, $opNum, $data);
                 break;
+
             case 'transfer_from_savings':
                 $this->insertTransferFromSavings($transNum, $opNum, $data);
                 break;
+
             case 'account_witness_proxy':
                 $this->insertAccountWitnessProxy($transNum, $opNum, $data);
                 break;
+
             default:
                 file_put_contents(
                     dirname(dirname(dirname(dirname(__FILE__))))."/missingOperations.txt",
                     $type.PHP_EOL,
                     FILE_APPEND
                 );
+
                 Output::warning("    -> Unknown operation type '".$type."' in b:{$this->blockNumber} t:{$transNum} o:{$opNum}");
                 break;
         }
@@ -263,11 +297,14 @@ class Block
 
     /**
      * Loads the data from the blockchain into the object
+     *
+     * @throws \Exception
      */
     protected function loadDataFromChain()
     {
-        $RPCClient                     = new RPCClient();
-        $blockData                     = $RPCClient->execute("get_block", array($this->blockNumber));
+        $RPCClient = new RPCClient();
+        $blockData = $RPCClient->execute("get_block", [$this->blockNumber]);
+
         $this->blockID                 = $blockData['block_id'];
         $this->dateTime                = $blockData['timestamp'];
         $this->transactions            = $blockData['transactions'];
@@ -353,12 +390,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertVote($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_votes",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -370,7 +409,7 @@ class Block
                 "author"          => $data['author'],
                 "permlink"        => $data['permlink'],
                 "weight"          => $data['weight']
-            )
+            ]
         );
     }
 
@@ -380,12 +419,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertComment($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_comments",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -400,7 +441,7 @@ class Block
                 "title"           => $data['title'],
                 "body"            => $data['body'],
                 "json_metadata"   => $data['json_metadata']
-            )
+            ]
         );
     }
 
@@ -410,12 +451,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertCustomJson($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_custom_jsons",
-            array(
+            [
                 // Meta
                 "block_num"              => $this->blockNumber,
                 "transaction_num"        => $transNum,
@@ -427,7 +470,7 @@ class Block
                 "required_auths"         => json_encode($data['required_auths']),
                 "required_posting_auths" => json_encode($data['required_posting_auths']),
                 "json"                   => $data['json']
-            )
+            ]
         );
     }
 
@@ -437,6 +480,8 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertTransfer($transNum, $opNum, $data)
     {
@@ -447,7 +492,7 @@ class Block
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfers",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -460,7 +505,7 @@ class Block
                 "amount"          => $amount,
                 "amount_symbol"   => $currency,
                 "memo"            => $data['memo']
-            )
+            ]
         );
     }
 
@@ -470,12 +515,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertClaimRewardBalanace($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_claim_reward_balances",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -487,7 +534,7 @@ class Block
                 "reward_steem"    => str_replace(" STEEM", "", $data['reward_steem']),
                 "reward_sbd"      => str_replace(" SBD", "", $data['reward_sbd']),
                 "reward_vests"    => str_replace(" VESTS", "", $data['reward_vests']),
-            )
+            ]
         );
     }
 
@@ -497,13 +544,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertAccountUpdate($transNum, $opNum, $data)
     {
         // TODO Check key_auth1 and key_auth2 again
         Parser::getDatabase()->insert(
             "sbds_tx_account_updates",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -515,7 +564,7 @@ class Block
                 "memo_key"        => $data['memo_key'],
                 "json_metadata"   => $data['json_metadata']
 
-            )
+            ]
         );
     }
 
@@ -525,6 +574,8 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertTransferToVesting($transNum, $opNum, $data)
     {
@@ -533,7 +584,7 @@ class Block
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_to_vestings",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -546,7 +597,7 @@ class Block
                 "amount"          => $amount,
                 "amount_symbol"   => $currency
 
-            )
+            ]
         );
     }
 
@@ -556,13 +607,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertLimitOrderCreate($transNum, $opNum, $data)
     {
 
         Parser::getDatabase()->insert(
             "sbds_tx_limit_order_creates",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -578,7 +631,7 @@ class Block
                 "min_to_receive"  => $data['min_to_receive'],
                 "fill_or_kill"    => $data['fill_or_kill'],
                 "expiration"      => $data['expiration']
-            )
+            ]
         );
     }
 
@@ -588,12 +641,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertFeedPublish($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_feed_publishes",
-            array(
+            [
                 // Meta
                 "block_num"           => $this->blockNumber,
                 "transaction_num"     => $transNum,
@@ -604,7 +659,7 @@ class Block
                 "publisher"           => $data['publisher'],
                 "exchange_rate_base"  => $data['exchange_rate']['base'],
                 "exchange_rate_quote" => $data['exchange_rate']['quote']
-            )
+            ]
         );
     }
 
@@ -614,12 +669,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertAccountCreateWithDelegation($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_account_create_with_delegations",
-            array(
+            [
                 // Meta
                 "block_num"        => $this->blockNumber,
                 "transaction_num"  => $transNum,
@@ -636,7 +693,7 @@ class Block
                 "posting_key"      => $data['posting']['key_auths'][0][0],
                 "memo_key"         => $data['memo_key'],
                 "json_metadata"    => $data['json_metadata']
-            )
+            ]
         );
     }
 
@@ -646,12 +703,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertAccountCreate($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_account_creates",
-            array(
+            [
                 // Meta
                 "block_num"        => $this->blockNumber,
                 "transaction_num"  => $transNum,
@@ -667,7 +726,7 @@ class Block
                 "posting_key"      => $data['posting']['key_auths'][0][0],
                 "memo_key"         => $data['memo_key'],
                 "json_metadata"    => $data['json_metadata']
-            )
+            ]
         );
     }
 
@@ -677,12 +736,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertPow($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_pows",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -692,7 +753,7 @@ class Block
                 // Data
                 "worker_account"  => $data['worker_account'],
                 "block_id"        => $data['block_id']
-            )
+            ]
         );
     }
 
@@ -702,13 +763,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertPow2($transNum, $opNum, $data)
     {
-        
+
         Parser::getDatabase()->insert(
             "sbds_tx_pow2s",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -718,7 +781,7 @@ class Block
                 // Data
                 "worker_account"  => $data['work'][1]['input']['worker_account'],
                 "block_id"        => $data['work'][1]['input']['nonce']
-            )
+            ]
         );
     }
 
@@ -728,12 +791,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertConvert($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_converts",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -745,7 +810,7 @@ class Block
                 "requestid"       => $data['requestid'],
                 "amount"          => $data['amount']
 
-            )
+            ]
         );
     }
 
@@ -755,12 +820,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertAccountWitnessVote($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_account_witness_votes",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -771,7 +838,7 @@ class Block
                 "account"         => $data['account'],
                 "witness"         => $data['witness'],
                 "approve"         => $data['approve']
-            )
+            ]
         );
     }
 
@@ -781,12 +848,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertDelegateVestingShares($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_delegate_vesting_shares",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -797,7 +866,7 @@ class Block
                 "delegator"       => $data['delegator'],
                 "delegatee"       => $data['delegatee'],
                 "vesting_shares"  => $data['vesting_shares']
-            )
+            ]
         );
     }
 
@@ -807,13 +876,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertCommentOptions($transNum, $opNum, $data)
     {
         // TODO check extension key from blockchain - Currently unhandled
         Parser::getDatabase()->insert(
             "sbds_tx_comments_options",
-            array(
+            [
                 // Meta
                 "block_num"              => $this->blockNumber,
                 "transaction_num"        => $transNum,
@@ -827,7 +898,7 @@ class Block
                 "percent_steem_dollars"  => $data['percent_steem_dollars'],
                 "allow_votes"            => $data['allow_votes'],
                 "allow_curation_rewards" => $data['allow_curation_rewards']
-            )
+            ]
         );
     }
 
@@ -837,13 +908,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertLimitOrderCancel($transNum, $opNum, $data)
     {
         // TODO Check if operation cancle should delete order from database
         Parser::getDatabase()->insert(
             "sbds_tx_limit_order_cancels",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -853,7 +926,7 @@ class Block
                 // Data
                 "owner"           => $data['owner'],
                 "orderid"         => $data['orderid']
-            )
+            ]
         );
     }
 
@@ -863,13 +936,15 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertDeleteComment($transNum, $opNum, $data)
     {
         // TODO Check if 'deleteCVomment' should delete comment from database
         Parser::getDatabase()->insert(
             "sbds_tx_delete_comments",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -879,7 +954,7 @@ class Block
                 // Data
                 "author"          => $data['author'],
                 "permlink"        => $data['permlink']
-            )
+            ]
         );
     }
 
@@ -889,12 +964,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertWitnessUpdate($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_witness_updates",
-            array(
+            [
                 // Meta
                 "block_num"                  => $this->blockNumber,
                 "transaction_num"            => $transNum,
@@ -909,7 +986,7 @@ class Block
                 "props_maximum_block_size"   => $data['props']['maximum_block_size'],
                 "props_sbd_interest_rate"    => $data['props']['sbd_interest_rate'],
                 "fee"                        => $data['fee']
-            )
+            ]
         );
     }
 
@@ -919,12 +996,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertWithdrawVestingRoutes($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_withdraw_vesting_routes",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -936,7 +1015,7 @@ class Block
                 "to_account"      => $data['to_account'],
                 "percent"         => $data['percent'],
                 "auto_vest"       => $data['auto_vest']
-            )
+            ]
         );
     }
 
@@ -946,6 +1025,8 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertTransferToSavings($transNum, $opNum, $data)
     {
@@ -954,7 +1035,7 @@ class Block
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_to_savings",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -968,7 +1049,7 @@ class Block
                 "amount_symbol"   => $currency,
                 "memo"            => $data['memo']
 
-            )
+            ]
         );
     }
 
@@ -978,12 +1059,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertCancelTransferFromSavings($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_cancel_transfer_from_savings",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -993,7 +1076,7 @@ class Block
                 // Data
                 "from"            => $data['from'],
                 "request_id"      => $data['request_id']
-            )
+            ]
         );
     }
 
@@ -1003,12 +1086,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertWithdrawVesting($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_withdraw_vestings",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -1018,7 +1103,7 @@ class Block
                 // Data
                 "account"         => $data['account'],
                 "vesting_shares"  => $data['vesting_shares']
-            )
+            ]
         );
     }
 
@@ -1028,6 +1113,8 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertTransferFromSavings($transNum, $opNum, $data)
     {
@@ -1036,7 +1123,7 @@ class Block
 
         Parser::getDatabase()->insert(
             "sbds_tx_transfer_from_savings",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -1050,7 +1137,7 @@ class Block
                 "amount_symbol"   => $currency,
                 "memo"            => $data['memo'],
                 "request_id"      => $data['request_id']
-            )
+            ]
         );
     }
 
@@ -1060,12 +1147,14 @@ class Block
      * @param $transNum
      * @param $opNum
      * @param $data
+     *
+     * @throws \Exception
      */
     protected function insertAccountWitnessProxy($transNum, $opNum, $data)
     {
         Parser::getDatabase()->insert(
             "sbds_tx_account_witness_proxies",
-            array(
+            [
                 // Meta
                 "block_num"       => $this->blockNumber,
                 "transaction_num" => $transNum,
@@ -1075,7 +1164,7 @@ class Block
                 // Data
                 "account"         => $data['account'],
                 "Proxy"           => $data['proxy']
-            )
+            ]
         );
     }
 

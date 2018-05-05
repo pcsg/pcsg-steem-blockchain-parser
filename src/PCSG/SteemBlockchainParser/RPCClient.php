@@ -11,7 +11,7 @@ use JsonRPC\Client;
  */
 class RPCClient
 {
-    /** @var Client  */
+    /** @var Client */
     protected $Client;
 
     /**
