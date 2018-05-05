@@ -40,7 +40,7 @@ class WithdrawVesting extends AbstractType
 
             // Data
             "account"         => $data['account'],
-            "vesting_shares"  => $data['vesting_shares']
+            "vesting_shares"  => floatval($data['vesting_shares'])
         ]);
     }
 }

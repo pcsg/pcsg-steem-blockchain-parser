@@ -45,7 +45,7 @@ class WitnessUpdate extends AbstractType
             "props_account_creation_fee" => $data['props']['account_creation_fee'],
             "props_maximum_block_size"   => $data['props']['maximum_block_size'],
             "props_sbd_interest_rate"    => $data['props']['sbd_interest_rate'],
-            "fee"                        => $data['fee']
+            "fee"                        => floatval($data['fee'])
         ]);
     }
 }

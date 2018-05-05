@@ -41,7 +41,7 @@ class DelegateVestingShares extends AbstractType
             // Data
             "delegator"       => $data['delegator'],
             "delegatee"       => $data['delegatee'],
-            "vesting_shares"  => $data['vesting_shares']
+            "vesting_shares"  => floatval($data['vesting_shares'])
         ]);
     }
 }

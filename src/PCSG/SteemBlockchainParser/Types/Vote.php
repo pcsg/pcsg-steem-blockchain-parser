@@ -38,7 +38,7 @@ class Vote extends AbstractType
             "operation_type"  => "vote",
 
             // Data
-            "timestamp"       => $this->getDatabase(),
+            "timestamp"       => $Block->getDateTime(),
             "voter"           => $data['voter'],
             "author"          => $data['author'],
             "permlink"        => $data['permlink'],

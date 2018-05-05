@@ -115,22 +115,24 @@ class Block
         }
 
         // Insert the blocks operations into the database
-        foreach ($this->transactions as $transactionIndex => $transactionData) {
-            $transactionNum = $transactionIndex + 1;
-            $operations     = $transactionData['operations'];
+        if (is_array($this->transactions)) {
+            foreach ($this->transactions as $transactionIndex => $transactionData) {
+                $transactionNum = $transactionIndex + 1;
+                $operations     = $transactionData['operations'];
 
-            foreach ($operations as $operationIndex => $operationDetails) {
-                $operationNum = $operationIndex + 1;
-                $opType       = $operationDetails[0];
-                $opData       = $operationDetails[1];
+                foreach ($operations as $operationIndex => $operationDetails) {
+                    $operationNum = $operationIndex + 1;
+                    $opType       = $operationDetails[0];
+                    $opData       = $operationDetails[1];
 
-                try {
-                    $this->insertOperation($transactionNum, $operationNum, $opType, $opData);
-                } catch (\Exception $Exception) {
-                    Output::error("MySql Error -".$Exception->getMessage()."(Code: ".$Exception->getCode().")");
-                    Parser::getDatabase()->getPDO()->rollBack();
+                    try {
+                        $this->insertOperation($transactionNum, $operationNum, $opType, $opData);
+                    } catch (\Exception $Exception) {
+                        Output::error("MySql Error -".$Exception->getMessage()."(Code: ".$Exception->getCode().")");
+                        Parser::getDatabase()->getPDO()->rollBack();
 
-                    return;
+                        return;
+                    }
                 }
             }
         }
@@ -229,12 +231,10 @@ class Block
      */
     protected function insertOperation($transNum, $opNum, $type, $data)
     {
-        Output::debug("  Inserting Operation b:{$this->blockNumber} t:{$transNum} o:{$opNum} of type ".$type);
-
         try {
             $observe = Config::getInstance()->get("observe");
 
-            if (isset($observe[$type]) && $observe[$type] === 0) {
+            if (isset($observe[$type]) && (int)$observe[$type] === 0) {
                 return;
             }
         } catch (\Exception $Exception) {
@@ -242,6 +242,8 @@ class Block
                 Output::debug($Exception->getTraceAsString());
             }
         }
+
+        Output::debug("  Inserting Operation b:{$this->blockNumber} t:{$transNum} o:{$opNum} of type ".$type);
 
         switch ($type) {
             case 'vote':

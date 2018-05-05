@@ -39,7 +39,7 @@ class AccountCreate extends AbstractType
             "operation_type"   => 'account_create',
 
             // Data
-            "fee"              => $data['fee'],
+            "fee"              => floatval($data['fee']),
             "creator"          => $data['creator'],
             "new_account_name" => $data['new_account_name'],
             "owner_key"        => $data['owner']['key_auths'][0][0],

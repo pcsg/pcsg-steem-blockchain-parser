@@ -39,8 +39,8 @@ class AccountCreateWithDelegation extends AbstractType
             "operation_type"   => 'account_create_with_delegation',
 
             // Data
-            "fee"              => $data['fee'],
-            "delegation"       => $data['delegation'],
+            "fee"              => floatval($data['fee']),
+            "delegation"       => floatval($data['delegation']),
             "creator"          => $data['creator'],
             "new_account_name" => $data['new_account_name'],
             "owner_key"        => $data['owner']['key_auths'][0][0],

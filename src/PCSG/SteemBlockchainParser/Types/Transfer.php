@@ -31,8 +31,8 @@ class Transfer extends AbstractType
     public function process(Block $Block, $transNum, $opNum, $data)
     {
         // Split currency and amount
-        $amount   = explode(" ", $data['amount'])[0];
-        $currency = explode(" ", $data['amount'])[1];
+        $amount   = trim(explode(" ", $data['amount'])[0]);
+        $currency = trim(explode(" ", $data['amount'])[1]);
 
         $this->getDatabase()->insert("sbds_tx_transfers", [
             // Meta
@@ -45,7 +45,7 @@ class Transfer extends AbstractType
             // Data
             "from"            => $data['from'],
             "to"              => $data['to'],
-            "amount"          => $amount,
+            "amount"          => floatval($amount),
             "amount_symbol"   => $currency,
             "memo"            => $data['memo']
         ]);

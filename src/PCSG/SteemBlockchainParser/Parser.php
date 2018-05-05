@@ -93,6 +93,7 @@ class Parser
                 $id        = $data['id'];
                 $blockData = $data['result'];
 
+
                 if (empty($blockData)) {
                     $endOfBlockchain = $id;
                     break;

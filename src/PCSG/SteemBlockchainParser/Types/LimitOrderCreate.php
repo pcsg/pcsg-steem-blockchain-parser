@@ -30,6 +30,12 @@ class LimitOrderCreate extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
+        $fillOrKill = $data['fill_or_kill'];
+
+        if (empty($fillOrKill)) {
+            $fillOrKill = 0;
+        }
+
         $this->getDatabase()->insert("sbds_tx_limit_order_creates", [
             // Meta
             "block_num"       => $Block->getBlockNumber(),
@@ -44,9 +50,9 @@ class LimitOrderCreate extends AbstractType
 
             // TODO Check again for cancel value in limit_order_create
             //"cancel" => $data[''],
-            "amount_to_sell"  => $data['amount_to_sell'],
-            "min_to_receive"  => $data['min_to_receive'],
-            "fill_or_kill"    => $data['fill_or_kill'],
+            "amount_to_sell"  => floatval($data['amount_to_sell']),
+            "min_to_receive"  => floatval($data['min_to_receive']),
+            "fill_or_kill"    => $fillOrKill,
             "expiration"      => $data['expiration']
         ]);
     }

@@ -30,6 +30,12 @@ class CommentOptions extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
+        $curationRewards = $data['allow_curation_rewards'];
+
+        if (empty($curationRewards)) {
+            $curationRewards = 0;
+        }
+
         // TODO check extension key from blockchain - Currently unhandled
         $this->getDatabase()->insert("sbds_tx_comments_options", [
             // Meta
@@ -42,10 +48,10 @@ class CommentOptions extends AbstractType
             // Data
             "author"                 => $data['author'],
             "permlink"               => $data['permlink'],
-            "max_accepted_payout"    => $data['max_accepted_payout'],
+            "max_accepted_payout"    => floatval($data['max_accepted_payout']),
             "percent_steem_dollars"  => $data['percent_steem_dollars'],
             "allow_votes"            => $data['allow_votes'],
-            "allow_curation_rewards" => $data['allow_curation_rewards']
+            "allow_curation_rewards" => $curationRewards
         ]);
     }
 }

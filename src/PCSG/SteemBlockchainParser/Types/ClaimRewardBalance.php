@@ -40,9 +40,9 @@ class ClaimRewardBalance extends AbstractType
 
             // Data
             "account"         => $data['account'],
-            "reward_steem"    => str_replace(" STEEM", "", $data['reward_steem']),
-            "reward_sbd"      => str_replace(" SBD", "", $data['reward_sbd']),
-            "reward_vests"    => str_replace(" VESTS", "", $data['reward_vests']),
+            "reward_steem"    => floatval(str_replace(" STEEM", "", $data['reward_steem'])),
+            "reward_sbd"      => floatval(str_replace(" SBD", "", $data['reward_sbd'])),
+            "reward_vests"    => floatval(str_replace(" VESTS", "", $data['reward_vests'])),
         ]);
     }
 }

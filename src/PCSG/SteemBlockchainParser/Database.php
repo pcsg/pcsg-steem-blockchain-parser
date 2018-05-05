@@ -4,6 +4,9 @@ namespace PCSG\SteemBlockchainParser;
 
 use QUI\Database\DB;
 
+mb_internal_encoding('UTF-8');
+mb_http_output('UTF-8');
+
 /**
  * Class Database
  *
@@ -29,5 +32,12 @@ class Database extends DB
         ];
 
         parent::__construct($attributes);
+
+        $this->setAttribute('options', [
+            \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
+
+        $this->PDO = $this->getNewPDO();
+        $this->PDO->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
     }
 }

@@ -41,7 +41,7 @@ class Convert extends AbstractType
             // Data
             "owner"           => $data['owner'],
             "requestid"       => $data['requestid'],
-            "amount"          => $data['amount']
+            "amount"          => floatval($data['amount'])
         ]);
     }
 }
