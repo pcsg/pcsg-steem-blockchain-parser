@@ -1,8 +1,14 @@
 <?php
 
+/**
+ * This file contains PCSG\SteemBlockchainParser\Block
+ */
+
 namespace PCSG\SteemBlockchainParser;
 
-use QUITest\QUI\Utils\Text\QUIUtilsTextWordTest;
+use PCSG\SteemBlockchainParser\Types\ClaimRewardBalance;
+use PCSG\SteemBlockchainParser\Types\Comment;
+use PCSG\SteemBlockchainParser\Types\Vote;
 
 /**
  * Class Block
@@ -30,6 +36,28 @@ class Block
     {
         $this->blockNumber = $blockNumber;
     }
+
+    // region getter
+
+    /**
+     * Return the block number
+     *
+     * @return mixed
+     */
+    public function getBlockNumber()
+    {
+        return $this->blockNumber;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getDateTime()
+    {
+        return $this->dateTime;
+    }
+
+    // endregion
 
     /**
      * Parses the given array into the block object and inserts all data into the database
@@ -120,6 +148,7 @@ class Block
         foreach ($this->transactions as $transationIndex => $transactionData) {
             $transactionNum = $transationIndex + 1;
             $operations     = $transactionData['operations'];
+
             foreach ($operations as $operationIndex => $operationDetails) {
                 $operationNum = $operationIndex + 1;
                 $opType       = $operationDetails[0];
@@ -139,6 +168,9 @@ class Block
         Parser::getDatabase()->getPDO()->commit();
     }
 
+    /**
+     * Return, if the block is in the database
+     */
     public function isBlockInDatabase()
     {
         // TODO
@@ -181,15 +213,15 @@ class Block
 
         switch ($type) {
             case 'vote':
-                $this->insertVote($transNum, $opNum, $data);
+                $Type = new Vote();
                 break;
 
             case 'comment':
-                $this->insertComment($transNum, $opNum, $data);
+                $Type = new Comment();
                 break;
 
             case 'claim_reward_balance':
-                $this->insertClaimRewardBalanace($transNum, $opNum, $data);
+                $Type = new ClaimRewardBalance();
                 break;
 
             case 'transfer':
@@ -291,8 +323,13 @@ class Block
                 );
 
                 Output::warning("    -> Unknown operation type '".$type."' in b:{$this->blockNumber} t:{$transNum} o:{$opNum}");
-                break;
+
+                return;
         }
+
+        $Type->process($this, $transNum, $opNum, $data);
+
+        $this->fireEvent('vote', [$this, $transNum, $opNum, $data]);
     }
 
     /**
@@ -385,67 +422,6 @@ class Block
     #region Operation Inserts
 
     /**
-     * Inserts a vote operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertVote($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_votes",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "operation_type"  => "vote",
-                // Data
-                "timestamp"       => $this->dateTime,
-                "voter"           => $data['voter'],
-                "author"          => $data['author'],
-                "permlink"        => $data['permlink'],
-                "weight"          => $data['weight']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a comment operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertComment($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_comments",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "operation_type"  => "comment",
-                // Data
-                "timestamp"       => $this->dateTime,
-                "author"          => $data['author'],
-                "permlink"        => $data['permlink'],
-                "parent_author"   => $data['parent_author'],
-                "parent_permlink" => $data['parent_permlink'],
-                "title"           => $data['title'],
-                "body"            => $data['body'],
-                "json_metadata"   => $data['json_metadata']
-            ]
-        );
-    }
-
-    /**
      * Inserts a custom json entry into the database
      *
      * @param $transNum
@@ -505,35 +481,6 @@ class Block
                 "amount"          => $amount,
                 "amount_symbol"   => $currency,
                 "memo"            => $data['memo']
-            ]
-        );
-    }
-
-    /**
-     * Inserts a claim reward balance operation into the database
-     *
-     * @param $transNum
-     * @param $opNum
-     * @param $data
-     *
-     * @throws \Exception
-     */
-    protected function insertClaimRewardBalanace($transNum, $opNum, $data)
-    {
-        Parser::getDatabase()->insert(
-            "sbds_tx_claim_reward_balances",
-            [
-                // Meta
-                "block_num"       => $this->blockNumber,
-                "transaction_num" => $transNum,
-                "operation_num"   => $opNum,
-                "timestamp"       => $this->dateTime,
-                "operation_type"  => 'claim_reward_balance',
-                // Data
-                "account"         => $data['account'],
-                "reward_steem"    => str_replace(" STEEM", "", $data['reward_steem']),
-                "reward_sbd"      => str_replace(" SBD", "", $data['reward_sbd']),
-                "reward_vests"    => str_replace(" VESTS", "", $data['reward_vests']),
             ]
         );
     }
