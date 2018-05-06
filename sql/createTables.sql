@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS `sbds_tx_comments_options` (
   `author` varchar(50) NOT NULL,
   `permlink` varchar(512) NOT NULL,
   `max_accepted_payout` decimal(15,6) NOT NULL,
-  `percent_steem_dollars` smallint(6) DEFAULT NULL,
+  `percent_steem_dollars` int(6) DEFAULT NULL,
   `allow_votes` tinyint(1) NOT NULL,
   `allow_curation_rewards` tinyint(1) NOT NULL,
   `operation_type` enum('comment_options') NOT NULL,

@@ -2,6 +2,11 @@
 
 namespace PCSG\SteemBlockchainParser;
 
+/**
+ * Class Output
+ *
+ * @package PCSG\SteemBlockchainParser
+ */
 class Output
 {
     const LEVEL_DEBUG = 1;
@@ -14,6 +19,7 @@ class Output
      * Issues a critical message to the output
      *
      * @param $msg
+     * @throws \Exception
      */
     public static function critical($msg)
     {
@@ -21,10 +27,10 @@ class Output
             return;
         }
 
-        $msg = self::buildMessage($msg, array(
+        $msg = self::buildMessage($msg, [
             "timestamp" => self::getTimestamp(),
-            "level" => "critical"
-        ));
+            "level"     => "critical"
+        ]);
 
         $msg = "\e[91m".$msg."\e[0m";
 
@@ -35,6 +41,7 @@ class Output
      * Issues an error message to the output
      *
      * @param $msg
+     * @throws \Exception
      */
     public static function error($msg)
     {
@@ -42,10 +49,10 @@ class Output
             return;
         }
 
-        $msg = self::buildMessage($msg, array(
+        $msg = self::buildMessage($msg, [
             "timestamp" => self::getTimestamp(),
-            "level" => "error"
-        ));
+            "level"     => "error"
+        ]);
 
         $msg = "\e[91m".$msg."\e[0m";
 
@@ -56,6 +63,7 @@ class Output
      * Issues a warning message to the output
      *
      * @param $msg
+     * @throws \Exception
      */
     public static function warning($msg)
     {
@@ -63,10 +71,10 @@ class Output
             return;
         }
 
-        $msg = self::buildMessage($msg, array(
+        $msg = self::buildMessage($msg, [
             "timestamp" => self::getTimestamp(),
-            "level" => "warning"
-        ));
+            "level"     => "warning"
+        ]);
 
         $msg = "\e[93m".$msg."\e[0m";
 
@@ -77,6 +85,7 @@ class Output
      * Issues an info message to the output
      *
      * @param $msg
+     * @throws \Exception
      */
     public static function info($msg)
     {
@@ -84,10 +93,10 @@ class Output
             return;
         }
 
-        $msg = self::buildMessage($msg, array(
+        $msg = self::buildMessage($msg, [
             "timestamp" => self::getTimestamp(),
-            "level" => "info"
-        ));
+            "level"     => "info"
+        ]);
 
         $msg = "\e[1;37m".$msg."\e[0m";
 
@@ -98,6 +107,7 @@ class Output
      * Issues a debug message to the output
      *
      * @param $msg
+     * @throws \Exception
      */
     public static function debug($msg)
     {
@@ -105,10 +115,10 @@ class Output
             return;
         }
 
-        $msg = self::buildMessage($msg, array(
+        $msg = self::buildMessage($msg, [
             "timestamp" => self::getTimestamp(),
-            "level" => "debug"
-        ));
+            "level"     => "debug"
+        ]);
 
         self::writeLn($msg);
     }
@@ -151,9 +161,10 @@ class Output
     protected static function buildMessage($msg, array $params)
     {
         $timestamp = isset($params['timestamp']) ? $params['timestamp'] : "";
-        $level = isset($params['level']) ? $params['level'] : "";
+        $level     = isset($params['level']) ? $params['level'] : "";
 
         $prfx = "";
+
         if (!empty($timestamp)) {
             $prfx = $timestamp;
         }
@@ -167,6 +178,7 @@ class Output
 
     /**
      * Returns the configured output level
+     *
      * @return int
      * @throws \Exception
      */
@@ -181,27 +193,32 @@ class Output
             case "debug":
                 return self::LEVEL_DEBUG;
                 break;
+
             // Info
             case self::LEVEL_INFO:
             case "info":
                 return self::LEVEL_INFO;
                 break;
+
             // Warning
             case self::LEVEL_WARNING:
             case "warning":
                 return self::LEVEL_WARNING;
                 break;
+
             // Error
             case self::LEVEL_ERROR:
             case "error":
                 return self::LEVEL_ERROR;
                 break;
+
             // Critical
             case self::LEVEL_CRITICAL:
             case "critical":
                 return self::LEVEL_CRITICAL;
                 break;
-                //Default:
+
+            //Default:
             default:
                 return self::LEVEL_INFO;
         }

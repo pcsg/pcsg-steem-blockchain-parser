@@ -13,7 +13,7 @@ class Config
     protected static $Instance = null;
 
     /** @var array */
-    protected $config = array();
+    protected $config = [];
 
     /**
      * Config constructor.
@@ -29,20 +29,23 @@ class Config
      * Returns the value of the setting in the given section
      *
      * @param $section
-     * @param $config
+     * @param $config - optional
      *
      * @return mixed
      * @throws \Exception
      */
-    public function get($section, $config)
+    public function get($section, $config = false)
     {
-
         if (!isset($this->config[$section])) {
-            throw new \Exception("Invalid section '" . $section . "'");
+            throw new \Exception("Invalid section '".$section."'", 404);
+        }
+
+        if ($config === false) {
+            return $this->config[$section];
         }
 
         if (!isset($this->config[$section][$config])) {
-            throw new \Exception("Invalid setting '" . $config . "' in '" . $section . "'");
+            throw new \Exception("Invalid setting '".$config."' in '".$section."'", 404);
         }
 
         return $this->config[$section][$config];
@@ -55,10 +58,10 @@ class Config
      */
     protected function load()
     {
-        $configFile = dirname(dirname(dirname(dirname(__FILE__)))) . "/etc/config.ini.php";
+        $configFile = dirname(dirname(dirname(dirname(__FILE__))))."/etc/config.ini.php";
 
         if (!file_exists($configFile)) {
-            throw new \Exception("Configfile '" . $configFile . "' was not found!");
+            throw new \Exception("Configfile '".$configFile."' was not found!");
         }
 
         $config = parse_ini_file($configFile, true);
@@ -72,14 +75,14 @@ class Config
 
     /**
      * @return Config
+     *
+     * @throws \Exception
      */
     public static function getInstance()
     {
-        if (!is_null(self::$Instance)) {
-            return self::$Instance;
+        if (is_null(self::$Instance)) {
+            self::$Instance = new Config();
         }
-
-        self::$Instance = new Config();
 
         return self::$Instance;
     }
