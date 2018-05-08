@@ -1,7 +1,7 @@
 STEEM to Database
 ======
 
-![STEEM to Database](bin/header-steemit-green.png)
+![STEEM to Database](bin/header.png)
 
 Description
 ------
