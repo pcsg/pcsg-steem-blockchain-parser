@@ -1,15 +1,15 @@
-PCSG STEEM Blockchain Parser
+STEEM to Database
 ======
 
-![PCSG STEEM Blockchain Parser](bin/header-steemit-green.png)
+![STEEM to Database](bin/header-steemit-green.png)
 
 Description
 ------
 
-The STEEM Blockchain Parser will parse the STEEM Blockchain JSON-RPC Endpoints
-and insert the data into a MySql Database. 
-It is possible to parse either a single block, a range of blocks 
-or run a continuous loop to parse all available blocks.  
+The STEEM to Database will parse the STEEM Blockchain JSON-RPC Endpoints and insert the data into a Database. 
+It is possible to parse either a single block, a range of blocks or run a continuous loop to parse all available blocks.
+
+*Currently only MySQL is supported* 
 
 Features
 ------
