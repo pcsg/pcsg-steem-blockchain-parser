@@ -6,7 +6,7 @@ STEEM to Database
 Description
 ------
 
-The STEEM to Database will parse the STEEM Blockchain JSON-RPC Endpoints and insert the data into a Database. 
+The STEEM to Database will parse the STEEM Blockchain and insert the data into a Database. 
 It is possible to parse either a single block, a range of blocks or run a continuous loop to parse all available blocks.
 
 *Currently only MySQL is supported* 
@@ -107,3 +107,7 @@ service supervisor restart
 ```
 
 
+How it works
+-----
+
+![How it works](bin/how-it-works.png)
