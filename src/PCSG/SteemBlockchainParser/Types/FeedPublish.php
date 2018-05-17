@@ -40,8 +40,8 @@ class FeedPublish extends AbstractType
 
             // Data
             "publisher"           => $data['publisher'],
-            "exchange_rate_base"  => $data['exchange_rate']['base'],
-            "exchange_rate_quote" => $data['exchange_rate']['quote']
+            "exchange_rate_base"  => floatval($data['exchange_rate']['base']),
+            "exchange_rate_quote" => floatval($data['exchange_rate']['quote'])
         ]);
     }
 }
