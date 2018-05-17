@@ -24,7 +24,15 @@ Features
 Installation
 ------
 
+### Needles
+
+```
+php-mbstring
+php-mysql
+```
+
 ### Manually
+
 **Step 1** Clone the repository
 ```
 git clone git@dev.quiqqer.com:pcsg/steem-blockchain-parser.git

@@ -30,6 +30,10 @@ class AccountWitnessVote extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
+        if (empty($data['approve'])) {
+            $data['approve'] = 0;
+        }
+
         $this->getDatabase()->insert("sbds_tx_account_witness_votes", [
             // Meta
             "block_num"       => $Block->getBlockNumber(),
