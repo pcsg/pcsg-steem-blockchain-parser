@@ -104,10 +104,13 @@ process_name = %(program_name)s-80%(process_num)02d
 stdout_logfile = <parser-directory>/logs/blockchain-parser%(process_num)02d.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
+stderr_logfile= /home/s2db/logs/error-blockchain-parser%(process_num)02d.log
 numprocs=1
 directory=<parser-directory>
 stopwaitsecs=10
 user=<user>
+autostart=true
+autorestart=true
 ```
 
 ```
