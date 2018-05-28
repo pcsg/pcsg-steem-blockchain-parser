@@ -30,8 +30,18 @@ if ($lastBlock === 0) {
     }
 }
 
-$Parser->parseBlockRangeAsync(
-    $lastBlock + 1,
-    false,
-    \PCSG\SteemBlockchainParser\Config::getInstance()->get("requests", "concurrent_requests")
-);
+try {
+    $Parser->parseBlockRangeAsync(
+        $lastBlock + 1,
+        false,
+        \PCSG\SteemBlockchainParser\Config::getInstance()->get("requests", "concurrent_requests")
+    );
+} catch (\Exception $Exception) {
+    echo $Exception->getMessage();
+    echo PHP_EOL;
+    exit;
+}
+
+// this delay is for the supervisor
+// if the process breaks to fast, the supervisor kills it
+sleep(1);
