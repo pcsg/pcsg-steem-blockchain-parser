@@ -84,7 +84,7 @@ docker run --name steemit-parser \
 Additional steps
 ------
 
-### Keep the parser running
+### Keep the parser running (For manual installations)
 
 #### Supervisor
 
