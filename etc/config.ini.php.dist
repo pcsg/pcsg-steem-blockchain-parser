@@ -6,7 +6,8 @@ rpcurls[]='https://api.steemit.com/'
 ;rpcurls[]='https://api.steem.house/'
 
 [block]
-start=22000000
+start=0
+saverawblock=0
 
 [requests]
 concurrent_requests=10
