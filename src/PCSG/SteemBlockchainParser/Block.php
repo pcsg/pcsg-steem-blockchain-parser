@@ -41,14 +41,14 @@ use PCSG\SteemBlockchainParser\Types\WitnessUpdate;
 class Block
 {
     protected $blockNumber;
-
+    protected $raw;
     protected $blockID;
     protected $transactions;
     protected $dateTime;
     protected $previous;
     protected $witness;
     protected $witness_signature;
-    protected $transaktion_merkle_root;
+    protected $transaction_merkle_root;
 
     /**
      * Block constructor.
@@ -209,13 +209,13 @@ class Block
     protected function insertBlockIntoDatabase()
     {
         Parser::getDatabase()->insert("sbds_core_blocks", [
-            "raw"                     => "",
+            "raw"                     => $this->raw,
             "block_num"               => $this->blockNumber,
             "previous"                => $this->previous,
             "timestamp"               => $this->dateTime,
             "witness"                 => $this->witness,
             "witness_signature"       => $this->witness_signature,
-            "transaction_merkle_root" => $this->transaktion_merkle_root
+            "transaction_merkle_root" => $this->transaction_merkle_root
         ]);
     }
 
@@ -372,8 +372,15 @@ class Block
      */
     protected function loadDataFromChain()
     {
-        $RPCClient = new RPCClient();
-        $blockData = $RPCClient->execute("get_block", [$this->blockNumber]);
+        $RPCClient    = new RPCClient();
+        $blockData    = $RPCClient->execute("get_block", [$this->blockNumber]);
+        $saveRawBlock = Config::getInstance()->get("block", "save_raw_block");
+
+        if (isset($saveRawBlock) && (int)$saveRawBlock === 1) {
+            $this->raw = json_encode($blockData);
+        } else {
+            $this->raw = "";
+        }
 
         $this->blockID                 = $blockData['block_id'];
         $this->dateTime                = $blockData['timestamp'];
@@ -381,12 +388,12 @@ class Block
         $this->previous                = $blockData['previous'];
         $this->witness                 = $blockData['witness'];
         $this->witness_signature       = $blockData['witness_signature'];
-        $this->transaktion_merkle_root = $blockData['transaction_merkle_root'];
+        $this->transaction_merkle_root = $blockData['transaction_merkle_root'];
     }
 
     /**
      * Loads the data from the given array into the object.
-     * This can be used for mass imports, when you want to run paralell guzzle requests to enter a lot of blocks simultanously
+     * This can be used for mass imports, when you want to run parallel guzzle requests to enter a lot of blocks simultaneously
      *
      * @param array $blockData
      */
@@ -398,7 +405,7 @@ class Block
         $this->previous                = $blockData['previous'];
         $this->witness                 = $blockData['witness'];
         $this->witness_signature       = $blockData['witness_signature'];
-        $this->transaktion_merkle_root = $blockData['transaction_merkle_root'];
+        $this->transaction_merkle_root = $blockData['transaction_merkle_root'];
     }
 
     /**
