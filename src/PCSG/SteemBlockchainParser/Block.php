@@ -399,6 +399,18 @@ class Block
      */
     protected function loadDataFromArray(array $blockData)
     {
+        try {
+            $saveRawBlock = Config::getInstance()->get("block", "save_raw_block");
+        } catch (\Exception $Exception) {
+            // @todo log error
+        }
+
+        if (isset($saveRawBlock) && (int)$saveRawBlock === 1) {
+            $this->raw = json_encode($blockData);
+        } else {
+            $this->raw = "";
+        }
+
         $this->blockID                 = $blockData['block_id'];
         $this->dateTime                = $blockData['timestamp'];
         $this->transactions            = $blockData['transactions'];
