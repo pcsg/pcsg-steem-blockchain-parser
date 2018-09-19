@@ -30,6 +30,8 @@ class WitnessUpdate extends AbstractType
      */
     public function process(Block $Block, $transNum, $opNum, $data)
     {
+        $amount = trim(explode(" ", $data['props']['account_creation_fee'])[0]);
+
         $this->getDatabase()->insert("sbds_tx_witness_updates", [
             // Meta
             "block_num"                  => $Block->getBlockNumber(),
@@ -42,7 +44,7 @@ class WitnessUpdate extends AbstractType
             "owner"                      => $data['owner'],
             "url"                        => $data['url'],
             "block_signing_key"          => $data['block_signing_key'],
-            "props_account_creation_fee" => $data['props']['account_creation_fee'],
+            "props_account_creation_fee" => $amount,
             "props_maximum_block_size"   => $data['props']['maximum_block_size'],
             "props_sbd_interest_rate"    => $data['props']['sbd_interest_rate'],
             "fee"                        => floatval($data['fee'])
