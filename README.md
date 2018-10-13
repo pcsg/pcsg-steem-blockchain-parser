@@ -6,7 +6,7 @@ STEEM to Database
 Description
 ------
 
-The STEEM to Database will parse the STEEM Blockchain and insert the data into a Database. 
+STEEM to Database will parse the STEEM Blockchain and insert the data into a Database. 
 It is possible to parse either a single block, a range of blocks or run a continuous loop to parse all available blocks.
 
 *Currently only MySQL is supported* 
@@ -45,7 +45,7 @@ nano etc/config.ini.php
 ```
 
 **Step 3** Create Database
-* Create da Database
+* Create the Database
 * Import the SQL File `sql/createTables.sql`
 
 **Step 4** Run composer
@@ -61,11 +61,13 @@ php run.php
 ### Docker
 
 **Step 1** Database
+
 Create a database on a database server (your docker containers must be able to connect to it)
 Execute the `sql/createTables.sql` SQL-Queries to create the databases table structure
 
 
 **Step 2** Docker container
+
 We provide a docker container for ease of use.  
 Change the environment variables and run the following command to get the container up and running.  
 ```
